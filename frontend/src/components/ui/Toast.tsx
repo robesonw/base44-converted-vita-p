@@ -1,0 +1,1 @@
+import React from 'react';\n\nconst Toast = ({ message, type }) => {\n  return (\n    <div className={\

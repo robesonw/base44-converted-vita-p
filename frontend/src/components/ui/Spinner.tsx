@@ -1,0 +1,1 @@
+import React from 'react';\n\nconst Spinner = () => {\n  return (\n    <div className="loader"></div>\n  );\n};\nexport default Spinner;

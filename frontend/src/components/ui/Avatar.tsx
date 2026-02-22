@@ -1,0 +1,1 @@
+import React from 'react';\n\nconst Avatar = ({ src, alt, fallback }) => {\n  return (\n    <div className="w-10 h-10 rounded-full overflow-hidden">\n      {src ? <img src={src} alt={alt} /> : <span>{fallback}</span>}\n    </div>\n  );\n};\nexport default Avatar;

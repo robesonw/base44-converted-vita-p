@@ -1,0 +1,1 @@
+@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n:root {\n  --main-bg-color: #f9fafb;\n  --main-font-color: #374151;\n}
