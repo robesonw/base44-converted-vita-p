@@ -1,30 +1,18 @@
-import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { User } from '@prisma/client';
-import prisma from '../lib/prisma';
+import { Request, Response, NextFunction } from 'express';
+import { config } from '../config';
 
 export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return res.sendStatus(403);
-
-    jwt.verify(token, process.env.JWT_SECRET!, (err, user) => {
-        if (err) return res.sendStatus(403);
-        req.user = user;
-        next();
-    });
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided.' });
+  jwt.verify(token, config.jwtSecret, (err, decoded) => {
+    if (err) return res.status(401).json({ message: 'Unauthorized.' });
+    req.user = decoded;
+    next();
+  });
 };
 
-export const requireRole = (...roles: string[]) => {
-    return (req: Request, res: Response, next: NextFunction) => {
-        if (!roles.includes(req.user.role)) return res.sendStatus(403);
-        next();
-    };
-};
-
-export const attachUser = (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user.id;
-    prisma.user.findUnique({ where: { id: userId }}).then((user: User | null) => {
-        req.user = user;
-        next();
-    });
+export const requireRole = (...roles: string[]) => (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user || !roles.includes(req.user.role)) return res.status(403).json({ message: 'Forbidden.' });
+  next();
 };

@@ -1,1 +1,28 @@
-import axios from 'axios';\n\nconst API = axios.create({ baseURL: import.meta.env.VITE_API_URL });\n\nAPI.interceptors.request.use(config => {\n  const token = localStorage.getItem('token');\n  if (token) {\n    config.headers.Authorization = `Bearer ${token}`;\n  }\n  return config;\n});\n\nAPI.interceptors.response.use(\n  response => response,\n  error => {\n    if (error.response.status === 401) {\n      localStorage.removeItem('token');\n      window.location.href = '/login';\n    }\n    return Promise.reject(error);\n  }\n);\n\nexport const apiFetch = async <T>(method: string, path: string, data?: any): Promise<T> => {\n  const response = await API({ method, url: path, data });\n  return response.data;\n};\n\nexport const useList = () => {}; // Implement with useQuery\nexport const useGet = () => {}; // Implement with useQuery\nexport const useCreate = () => {}; // Implement with useMutation\nexport const useUpdate = () => {}; // Implement with useMutation\nexport const useDelete = () => {}; // Implement with useMutation
+import axios from 'axios';
+
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000',
+});
+
+// Add a request interceptor
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+}, error => Promise.reject(error));
+
+// Add a response interceptor
+apiClient.interceptors.response.use((response) => response, (error) => {
+  if (error.response.status === 401) {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  }
+  return Promise.reject(error);
+});
+
+export async function apiFetch<T>(method: string, path: string, data?: unknown): Promise<T> {
+  const response = await apiClient({ method, url: path, data });
+  return response.data;
+}

@@ -1,1 +1,47 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';\nimport { useNavigate } from 'react-router-dom';\nimport { apiFetch } from '../lib/api';\n\nconst AuthContext = createContext(null);\n\nexport const AuthProvider = ({ children }) => {\n  const [user, setUser] = useState(null);\n  const [token, setToken] = useState(() => localStorage.getItem('token'));\n  const navigate = useNavigate();\n\n  const login = async (email, password) => {\n    const response = await apiFetch('POST', '/auth/login', { email, password });\n    setUser(response.user);\n    setToken(response.token);\n    localStorage.setItem('token', response.token);\n    navigate('/');\n  };\n\n  const logout = () => {\n    setUser(null);\n    setToken(null);\n    localStorage.removeItem('token');\n    navigate('/login');\n  };\n\n  const autoRefresh = () => {\n    const tokenExpiry = new Date(localStorage.getItem('tokenExpiry'));\n    if (tokenExpiry && tokenExpiry <= new Date()) {\n      logout();\n    }\n  };\n\n  useEffect(() => {\n    const interval = setInterval(autoRefresh, 1000);\n    return () => clearInterval(interval);\n  }, []);\n\n  return (\n    <AuthContext.Provider value={{ user, login, logout }}>\n      {children}\n    </AuthContext.Provider>\n  );\n};\n\nexport const useAuth = () => useContext(AuthContext);
+import { createContext, useContext, useState, ReactNode } from 'react';
+import { apiFetch } from '../lib/api';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: { name: string; email: string; password: string }) => Promise<void>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType>(null);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+
+  const login = async (email: string, password: string) => {
+    const response = await apiFetch('POST', '/api/auth/login', { email, password });
+    localStorage.setItem('token', response.accessToken);
+    setUser(response.user);
+  };
+
+  const register = async (data: { name: string; email: string; password: string }) => {
+    const response = await apiFetch('POST', '/api/auth/register', data);
+    localStorage.setItem('token', response.accessToken);
+    setUser(response.user);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => useContext(AuthContext);

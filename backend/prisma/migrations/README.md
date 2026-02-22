@@ -1,14 +1,18 @@
-# Prisma Migrations
+# Database Migration Steps
 
-This directory contains the migration files for the PostgreSQL database schema.
-
-## Quickstart
-
-To apply the migrations and seed the database, run:
-
-```bash
-npx prisma migrate dev
-npx prisma db seed
-```
-
-Ensure your DATABASE_URL is set in the .env file according to your environment configuration.
+1. Install required packages:
+   ```bash
+   npm install
+   ```
+2. Generate Prisma client:
+   ```bash
+   npx prisma generate
+   ```
+3. Create migration:
+   ```bash
+   npx prisma migrate dev --name init
+   ```
+4. Seed the database:
+   ```bash
+   npx prisma db seed
+   ```

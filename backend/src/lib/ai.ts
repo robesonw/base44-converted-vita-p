@@ -1,25 +1,16 @@
-import openai from 'openai'; // adjust to real SDK import
-import { AI_PROVIDER, AI_API_KEY } from '../config';
+import { config } from '../config';
+import OpenAI from 'openai';
 
-export const invokeLLM = async ({ prompt, systemPrompt, jsonSchema }) => {
-    const client = getClient(AI_PROVIDER);
+const client = new OpenAI({ apiKey: config.aiApiKey });
 
-    const response = await client.call({
-        prompt,
-        systemPrompt,
-        jsonSchema
-    });
-
-    return response.data;
-};
-
-const getClient = (provider) => {
-    // Return a client based on the provider
-    switch (provider) {
-        case 'openai':
-            return new OpenAIClient(AI_API_KEY);
-        // add cases for other providers
-        default:
-            throw new Error('Unsupported AI provider');
-    }
+export async function invokeLLM({ prompt, systemPrompt, jsonSchema }) {
+  const messages = [{ role: 'user', content: prompt }];
+  if (systemPrompt) messages.unshift({ role: 'system', content: systemPrompt });
+  const res = await client.chat.completions.create({
+    model: config.aiModel,
+    messages,
+    response_format: jsonSchema ? { type: 'json_object' } : { type: 'text' }
+  });
+  const text = res.choices[0].message.content || '';
+  return jsonSchema ? JSON.parse(text) : text;
 };

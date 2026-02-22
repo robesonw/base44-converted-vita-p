@@ -2,9 +2,14 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// This ensures that we are using a single instance of PrismaClient
-if (process.env.NODE_ENV !== 'production') {
-  global.prisma = global.prisma || prisma;
+// Add this line for hot reload in development environment
+if (process.env.NODE_ENV === 'development') {
+  // Prevent multiple instances of PrismaClient in development
+  if (global.prisma) {
+    module.exports = global.prisma;
+  } else {
+    global.prisma = prisma;
+  }
 }
 
 export default prisma;

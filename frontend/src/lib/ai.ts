@@ -1,1 +1,5 @@
-export const invokeAI = async ({ prompt, systemPrompt, jsonSchema }) => {\n  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/ai/invoke`, {\n    method: 'POST',\n    headers: {\n      'Content-Type': 'application/json',\n      'Authorization': `Bearer ${localStorage.getItem('token')}`\n    },\n    body: JSON.stringify({ prompt, systemPrompt, jsonSchema })\n  });\n  return response.json();\n};
+import { apiFetch } from './api';
+
+export async function invokeAI(opts: { prompt: string; systemPrompt?: string; jsonSchema?: object }): Promise<unknown> {
+  return apiFetch('POST', '/api/ai/invoke', opts);
+}

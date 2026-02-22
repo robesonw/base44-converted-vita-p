@@ -1,24 +1,40 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
+import { apiFetch } from '@/lib/api';
+import { createPageUrl } from '../utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, Share2, MessageSquare, Star, TrendingUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from '@/lib/api';
 import { motion } from 'framer-motion';
 
-export default function Community() {
-  const { data: sharedPlans = [] } = useQuery({
-    queryKey: ['sharedMealPlans'],
-    queryFn: () => apiFetch('GET', '/api/sharedMealPlans'),
-  });
+interface MealPlan {
+  id: string;
+  title: string;
+  description?: string;
+  author_name: string;
+  average_rating?: number;
+  saves_count?: number;
+  diet_type?: string;
+}
 
-  const { data: forumPosts = [] } = useQuery({
-    queryKey: ['forumPosts'],
-    queryFn: () => apiFetch('GET', '/api/forumPosts'),
-  });
+interface ForumPost {
+  id: string;
+  title: string;
+  author_name: string;
+  comments_count: number;
+  views_count: number;
+}
+
+export default function Community() {
+  const { data: sharedPlans = [] } = useQuery<MealPlan[]>('sharedMealPlans', () => 
+    apiFetch('GET', '/api/sharedMealPlans')
+  );
+
+  const { data: forumPosts = [] } = useQuery<ForumPost[]>('forumPosts', () => 
+    apiFetch('GET', '/api/forumPosts')
+  );
 
   const stats = [
     { label: 'Shared Plans', value: sharedPlans.length, icon: Share2, color: 'text-indigo-600' },
@@ -59,6 +75,7 @@ export default function Community() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="text-center space-y-2">
         <h1 className="text-4xl font-bold text-slate-900">Community Hub</h1>
         <p className="text-lg text-slate-600">
@@ -66,6 +83,7 @@ export default function Community() {
         </p>
       </div>
 
+      {/* Stats */}
       <div className="grid md:grid-cols-3 gap-4">
         {stats.map((stat, index) => (
           <motion.div
@@ -89,6 +107,7 @@ export default function Community() {
         ))}
       </div>
 
+      {/* Features */}
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {features.map((feature, index) => (
           <motion.div
@@ -99,7 +118,7 @@ export default function Community() {
           >
             <Card className="border-slate-200 hover:shadow-lg transition-all cursor-pointer group">
               <CardHeader>
-                <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>  
+                <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}> 
                   <feature.icon className="w-6 h-6 text-white" />
                 </div>
                 <CardTitle>{feature.title}</CardTitle>
@@ -107,9 +126,7 @@ export default function Community() {
               </CardHeader>
               <CardContent>
                 <Button asChild className="w-full">
-                  <Link to={createPageUrl(feature.link)}>
-                    Explore
-                  </Link>
+                  <Link to={createPageUrl(feature.link)}>Explore</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -117,6 +134,7 @@ export default function Community() {
         ))}
       </div>
 
+      {/* Recent Shared Plans */}
       {sharedPlans.length > 0 && (
         <Card className="border-slate-200">
           <CardHeader>
@@ -160,6 +178,7 @@ export default function Community() {
         </Card>
       )}
 
+      {/* Recent Forum Posts */}
       {forumPosts.length > 0 && (
         <Card className="border-slate-200">
           <CardHeader>
@@ -183,7 +202,7 @@ export default function Community() {
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-xs text-slate-500">by {post.author_name}</span>
                         <span className="text-xs text-slate-500">{post.comments_count || 0} comments</span>
-                        <span className="text-xs text-slate-500">{post.views_count || 0} views</span>
+                        <span className="text-xs text-slate-500">{post.views_count} views</span>
                       </div>
                     </div>
                   </div>
