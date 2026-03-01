@@ -1,1 +1,1 @@
-{ "compilerOptions": { "target": "ESNext", "module": "ESNext", "strict": true, "esModuleInterop": true, "outDir": "dist", "rootDir": "src" }, "include": ["src/**/*"], "exclude": ["node_modules"] }
+{\n  "compilerOptions": {\n    "target": "ESNext",\n    "module": "ESNext",\n    "strict": true,\n    "esModuleInterop": true,\n    "outDir": "dist",\n    "rootDir": "src"\n  },\n  "include": ["src/**/*"],\n  "exclude": ["node_modules"]\n}

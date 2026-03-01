@@ -1,64 +1,33 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { apiFetch } from '@/lib/api';
+import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ShoppingCart, Plus, Check, Copy, Printer, Download, DollarSign, Loader2, Share2, Mail, MessageSquare, List, Calendar, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 
 export default function GroceryLists() {
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('');
-  const [selectedStandaloneId, setSelectedStandaloneId] = useState<string>('');
-  const [listType, setListType] = useState<'meal-plan' | 'standalone'>('meal-plan');
-  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
-  const [groceryList, setGroceryList] = useState<Record<string, Array<{ name: string; quantity: number; price: number | null; }>> | null>(null);
-  const [newListName, setNewListName] = useState<string>('');
+  const [selectedPlanId, setSelectedPlanId] = useState('');
+  const [selectedStandaloneId, setSelectedStandaloneId] = useState('');
+  const [listType, setListType] = useState('meal-plan');
+  const [groceryList, setGroceryList] = useState(null);
+  const [newListName, setNewListName] = useState('');
+
   const queryClient = useQueryClient();
 
-  const { data: mealPlans = [] } = useQuery('mealPlans', () => apiFetch('GET', '/api/meal-plans'));
-  const { data: standaloneLists = [] } = useQuery('standaloneLists', () => apiFetch('GET', '/api/grocery-lists'));
+  const { data: mealPlans = [] } = useQuery({ queryKey: ['mealPlans'], queryFn: () => base44.entities.MealPlan.list('-created_date') });
+  const { data: standaloneLists = [] } = useQuery({ queryKey: ['standaloneLists'], queryFn: () => base44.entities.GroceryList.list('-created_date') });
 
-  const updatePlanMutation = useMutation({
-    mutationFn: (data: any) => apiFetch('PUT', '/api/meal-plans/' + selectedPlanId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries('mealPlans');
-      toast.success('Grocery list updated');
-    },
-  });
-
-  const createStandaloneListMutation = useMutation({
-    mutationFn: (data: any) => apiFetch('POST', '/api/grocery-lists', data),
-    onSuccess: (newList: any) => {
-      queryClient.invalidateQueries('standaloneLists');
+  const createStandaloneListMutation = useMutation({ 
+    mutationFn: (data) => base44.entities.GroceryList.create(data),
+    onSuccess: (newList) => {
+      queryClient.invalidateQueries({ queryKey: ['standaloneLists'] });
       setSelectedStandaloneId(newList.id);
       setListType('standalone');
       toast.success('List created');
-    },
-  });
-
-  const updateStandaloneListMutation = useMutation({
-    mutationFn: (data: any) => apiFetch('PUT', '/api/grocery-lists/' + selectedStandaloneId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries('standaloneLists');
-      toast.success('List updated');
-    },
-  });
-
-  const deleteStandaloneListMutation = useMutation({
-    mutationFn: (id: string) => apiFetch('DELETE', '/api/grocery-lists/' + id),
-    onSuccess: () => {
-      queryClient.invalidateQueries('standaloneLists');
-      toast.success('List deleted');
-      setSelectedStandaloneId('');
-      setGroceryList(null);
     },
   });
 
@@ -67,6 +36,7 @@ export default function GroceryLists() {
       toast.error('Please enter a list name');
       return;
     }
+
     const emptyList = {
       'Proteins': [],
       'Vegetables': [],
@@ -75,6 +45,7 @@ export default function GroceryLists() {
       'Fruits': [],
       'Other': []
     };
+
     createStandaloneListMutation.mutate({
       name: newListName,
       items: emptyList,
@@ -82,43 +53,34 @@ export default function GroceryLists() {
     });
   };
 
-  useEffect(() => {
-    if (listType === 'standalone') {
-      const selectedList = standaloneLists.find((l: any) => l.id === selectedStandaloneId);
-      if (selectedList) {
-        setGroceryList(selectedList.items || {});
-      }
-    } else {
-      const selectedPlan = mealPlans.find((p: any) => p.id === selectedPlanId);
-      if (selectedPlan?.grocery_list) {
-        setGroceryList(selectedPlan.grocery_list);
-      }
-    }
-    setCheckedItems(new Set());
-  }, [selectedPlanId, selectedStandaloneId, listType, mealPlans, standaloneLists]);
-
   return (
-    <div className="grocery-lists">
-      <Button onClick={() => setOpen(true)}>Create Standalone List</Button>
+    <div>
+      <h1 className="text-3xl font-bold text-slate-900">Grocery Lists</h1>
+      <div className="mb-4">
+        <Button onClick={() => setCreateListDialogOpen(true)}>Create List</Button>
+      </div>
       <Dialog open={createListDialogOpen} onOpenChange={setCreateListDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Standalone List</DialogTitle>
+            <DialogTitle>Create Standalone Grocery List</DialogTitle>
           </DialogHeader>
-          <Input placeholder="List Name" onChange={(e) => setNewListName(e.target.value)} />
+          <input
+            value={newListName}
+            onChange={(e) => setNewListName(e.target.value)}
+            placeholder="Enter list name..."
+            className="border p-2"
+          />
           <Button onClick={handleCreateStandaloneList}>Create</Button>
         </DialogContent>
       </Dialog>
       <div>
-        {groceryList && Object.entries(groceryList).map(([category, items]) => (
-          <Card key={category}>
+        {standaloneLists.map((list) => (
+          <Card key={list.id} className="mb-2">
             <CardHeader>
-              <CardTitle>{category}</CardTitle>
+              <CardTitle>{list.name}</CardTitle>
             </CardHeader>
             <CardContent>
-              {items.map((item, idx) => (
-                <Checkbox key={idx} onCheckedChange={() => toggleItem(item.name)}>{item.name}</Checkbox>
-              ))}
+              {/* Render your items here */}
             </CardContent>
           </Card>
         ))}

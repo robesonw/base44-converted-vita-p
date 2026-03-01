@@ -5,77 +5,73 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Flame, Trophy, Target, TrendingUp } from 'lucide-react';
+import { Heart, MessageSquare, TrendingUp, Trophy, Target, Flame } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { format } from 'date-fns';
 import { apiFetch } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
 
-const ProgressFeed: React.FC = () => {
-  const [commentText, setCommentText] = useState<{}>({});
+export default function ProgressFeed() {
+  const [commentText, setCommentText] = useState({});
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
-  const { data: sharedProgress = [] } = useQuery(['sharedProgress'], async () => {
-    return await apiFetch('GET', '/api/sharedProgress');
-  });
-
-  const likeProgressMutation = useMutation({
-    mutationFn: async (progressId: string) => {
-      // Handle like mutation
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['sharedProgress']);
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      // Assuming fetching user using apiFetch
+      return await apiFetch('GET', '/api/users/me');
     }
   });
 
+  const { data: sharedProgress = [] } = useQuery({
+    queryKey: ['sharedProgress'],
+    queryFn: () => apiFetch('GET', '/api/sharedProgress?page=1&limit=50'),
+  });
+
   const addCommentMutation = useMutation({
-    mutationFn: async ({ progressId, comment }: { progressId: string; comment: string; }) => {
-      return await apiFetch('POST', '/api/progressComment', { progress_id: progressId, comment, author_name: user?.full_name || 'Anonymous' });
-    },
+    mutationFn: ({ progressId, comment }) => apiFetch('POST', '/api/progressComments', {
+      progress_id: progressId,
+      comment,
+      author_name: user?.full_name || 'Anonymous'
+    }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['progressComments'] });
       toast.success('Comment added!');
-      queryClient.invalidateQueries(['progressComments']);
+      setCommentText(prev => ({ ...prev, [progressId]: '' }));
     },
   });
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-slate-900">Progress Feed</h1>
-      <Tabs defaultValue="feed">
+      <p className="text-slate-600 mt-1">See what the community is achieving</p>
+
+      <Tabs defaultValue="feed" className="space-y-6">
         <TabsList>
           <TabsTrigger value="feed">Community Feed</TabsTrigger>
-          <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
         </TabsList>
-
         <TabsContent value="feed" className="space-y-4">
           {sharedProgress.length === 0 ? (
-            <Card className="border-slate-200">
+            <Card>
               <CardContent className="p-12 text-center">
                 <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">No shared progress yet</h3>
-                <p className="text-slate-600">Be the first to share your nutrition tracking progress!</p>
+                <h3>No shared progress yet</h3>
               </CardContent>
             </Card>
           ) : (
-            sharedProgress.map((progress: any, index: number) => (
-              <motion.div key={progress.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
-                <Card className="border-slate-200">
+            sharedProgress.map((progress, index) => (
+              <motion.div key={progress.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                <Card>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
-                        <TrendingUp className="w-5 h-5 text-indigo-500" />
-                        <div>
-                          <CardTitle className="text-lg">{progress.title}</CardTitle>
-                          <p className="text-sm text-slate-500 mt-1">by {progress.author_name}</p>
-                        </div>
+                        <Flame className="w-5 h-5 text-orange-500" />
+                        <CardTitle>{progress.title}</CardTitle>
+                        <p>by {progress.author_name} â¢ {format(new Date(progress.created_date), 'MMM d, yyyy')}</p>
                       </div>
-                      <Badge variant="secondary">{progress.type}</Badge>
+                      <Badge variant="secondary">{progress.progress_type}</Badge>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-slate-700">{progress.description}</p>
-                  </CardContent>
                 </Card>
               </motion.div>
             ))
@@ -84,6 +80,4 @@ const ProgressFeed: React.FC = () => {
       </Tabs>
     </div>
   );
-};
-
-export default ProgressFeed;
+}

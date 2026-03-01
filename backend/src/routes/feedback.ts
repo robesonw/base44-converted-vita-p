@@ -1,58 +1,52 @@
+// Feedback routes
 import express from 'express';
 import prisma from '../lib/prisma';
 import { verifyToken } from '../middleware/auth';
 
 const router = express.Router();
 
-router.use(verifyToken);
-
-// List
-router.get('/api/feedback', async (req, res) => {
+// List Feedback
+router.get('/api/feedback', verifyToken, async (req, res) => {
   const { filter, sort, limit, offset } = req.query;
-  // Implement filtering and sorting logic
-  const feedbackItems = await prisma.feedback.findMany({
-    take: Number(limit) || 10,
-    skip: Number(offset) || 0,
-    // Additional filters go here
+  const feedbacks = await prisma.feedback.findMany({
+    where: { /* filter logic based on query */ },
+    orderBy: { /* sort logic based on query */ },
+    take: Number(limit) || undefined,
+    skip: Number(offset) || undefined
   });
-  res.json(feedbackItems);
+  res.json(feedbacks);
 });
 
-// Create
-router.post('/api/feedback', async (req, res) => {
-  const { comment, rating } = req.body;
-  const newFeedback = await prisma.feedback.create({
-    data: { comment, rating },
+// Create Feedback
+router.post('/api/feedback', verifyToken, async (req, res) => {
+  const feedback = await prisma.feedback.create({
+    data: req.body
   });
-  res.status(201).json(newFeedback);
+  res.status(201).json(feedback);
 });
 
-// Get one
-router.get('/api/feedback/:id', async (req, res) => {
-  const { id } = req.params;
-  const feedbackItem = await prisma.feedback.findUnique({
-    where: { id: Number(id) },
+// Get Feedback by ID
+router.get('/api/feedback/:id', verifyToken, async (req, res) => {
+  const feedback = await prisma.feedback.findUnique({
+    where: { id: Number(req.params.id) }
   });
-  if (!feedbackItem) return res.status(404).send('Feedback not found');
-  res.json(feedbackItem);
+  if (!feedback) return res.status(404).send('Feedback not found');
+  res.json(feedback);
 });
 
-// Update
-router.put('/api/feedback/:id', async (req, res) => {
-  const { id } = req.params;
-  const { comment, rating } = req.body;
-  const updatedFeedback = await prisma.feedback.update({
-    where: { id: Number(id) },
-    data: { comment, rating },
+// Update Feedback by ID
+router.put('/api/feedback/:id', verifyToken, async (req, res) => {
+  const feedback = await prisma.feedback.update({
+    where: { id: Number(req.params.id) },
+    data: req.body
   });
-  res.json(updatedFeedback);
+  res.json(feedback);
 });
 
-// Delete
-router.delete('/api/feedback/:id', async (req, res) => {
-  const { id } = req.params;
+// Delete Feedback by ID
+router.delete('/api/feedback/:id', verifyToken, async (req, res) => {
   await prisma.feedback.delete({
-    where: { id: Number(id) },
+    where: { id: Number(req.params.id) }
   });
   res.status(204).send();
 });

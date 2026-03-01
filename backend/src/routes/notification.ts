@@ -6,44 +6,41 @@ const router = express.Router();
 
 router.use(verifyToken);
 
-// GET /api/notification
-router.get('/notification', async (req, res) => {
+// List Notifications
+router.get('/api/notification', async (req, res) => {
     const { filter, sort, limit, offset } = req.query;
-    const notifications = await prisma.notification.findMany();
+    // Implement filtering, sorting, pagination logic here
+    const notifications = await prisma.notification.findMany({});
     res.json(notifications);
 });
 
-// POST /api/notification
-router.post('/notification', async (req, res) => {
+// Create Notification
+router.post('/api/notification', async (req, res) => {
     const { data } = req.body;
     const notification = await prisma.notification.create({ data });
     res.status(201).json(notification);
 });
 
-// GET /api/notification/:id
-router.get('/notification/:id', async (req, res) => {
+// Get Notification by ID
+router.get('/api/notification/:id', async (req, res) => {
     const { id } = req.params;
-    const notification = await prisma.notification.findUnique({ where: { id: parseInt(id) } });
-    if (!notification) return res.status(404).send('Notification not found');
+    const notification = await prisma.notification.findUnique({ where: { id: Number(id) } });
     res.json(notification);
 });
 
-// PUT /api/notification/:id
-router.put('/notification/:id', async (req, res) => {
+// Update Notification
+router.put('/api/notification/:id', async (req, res) => {
     const { id } = req.params;
     const { data } = req.body;
-    const notification = await prisma.notification.update({
-        where: { id: parseInt(id) },
-        data,
-    });
+    const notification = await prisma.notification.update({ where: { id: Number(id) }, data });
     res.json(notification);
 });
 
-// DELETE /api/notification/:id
-router.delete('/notification/:id', async (req, res) => {
+// Delete Notification
+router.delete('/api/notification/:id', async (req, res) => {
     const { id } = req.params;
-    const notification = await prisma.notification.delete({ where: { id: parseInt(id) } });
-    res.json(notification);
+    await prisma.notification.delete({ where: { id: Number(id) } });
+    res.status(204).send();
 });
 
 export default router;

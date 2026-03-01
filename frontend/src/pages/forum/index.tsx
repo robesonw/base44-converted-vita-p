@@ -5,107 +5,112 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { apiFetch } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { MessageSquare, Plus } from 'lucide-react';
+import { MessageSquare, Plus, Eye, Heart, Pin, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiFetch } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { motion } from 'framer-motion';
 
-interface Post {
-    id: string;
-    title: string;
-    content: string;
-    category: string;
-    author_name: string;
-}
+export default function Forum() {
+  const [createPostOpen, setCreatePostOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [newPost, setNewPost] = useState({ title: '', content: '', category: 'general', tags: '' });
+  const [newComment, setNewComment] = useState('');
 
-const Forum: React.FC = () => {
-    const [createPostOpen, setCreatePostOpen] = useState(false);
-    const [newPost, setNewPost] = useState({ title: '', content: '', category: 'general' });
-    const queryClient = useQueryClient();
-    const { data: user } = useAuth();
+  const queryClient = useQueryClient();
 
-    const { data: posts = [] } = useQuery<Post[]>('forumPosts', () => apiFetch('GET', '/api/forum-posts'));
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => apiFetch('/users/me'),
+  });
 
-    const createPostMutation = useMutation({
-        mutationFn: (data: Post) => apiFetch('POST', '/api/forum-posts', data),
-        onSuccess: () => {
-            queryClient.invalidateQueries('forumPosts');
-            toast.success('Post created!');
-            setCreatePostOpen(false);
-            setNewPost({ title: '', content: '', category: 'general' });
-        },
+  const { data: posts = [] } = useQuery({
+    queryKey: ['forumPosts'],
+    queryFn: () => apiFetch('/forum-posts'),
+  });
+
+  const { data: comments = [] } = useQuery({
+    queryKey: ['forumComments'],
+    queryFn: () => apiFetch('/forum-comments'),
+  });
+
+  const createPostMutation = useMutation({
+    mutationFn: (data) => apiFetch('/forum-posts', { method: 'POST', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['forumPosts'] });
+      toast.success('Post created!');
+      setCreatePostOpen(false);
+      setNewPost({ title: '', content: '', category: 'general', tags: '' });
+    },
+  });
+
+  const addCommentMutation = useMutation({
+    mutationFn: (data) => apiFetch('/forum-comments', { method: 'POST', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['forumComments'] });
+      toast.success('Comment added!');
+      setNewComment('');
+    },
+  });
+
+  const handleCreatePost = () => {
+    if (!newPost.title || !newPost.content) {
+      toast.error('Please fill in title and content');
+      return;
+    }
+
+    createPostMutation.mutate({
+      ...newPost,
+      tags: newPost.tags.split(',').map(t => t.trim()).filter(Boolean),
+      author_name: user?.name || 'Anonymous',
     });
+  };
 
-    const handleCreatePost = () => {
-        if (!newPost.title || !newPost.content) {
-            toast.error('Please fill in title and content');
-            return;
-        }
+  const handleAddComment = () => {
+    if (!newComment.trim() || !selectedPost) return;
 
-        createPostMutation.mutate({
-            ...newPost,
-            author_name: user?.full_name || 'Anonymous',
-        });
-    };
+    addCommentMutation.mutate({
+      post_id: selectedPost.id,
+      content: newComment,
+      author_name: user?.name || 'Anonymous',
+    });
+  };
 
-    return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900">Community Forum</h1>
-                    <p className="text-slate-600 mt-1">Share knowledge, ask questions, connect with others</p>
-                </div>
-                <Button onClick={() => setCreatePostOpen(true)} className="bg-gradient-to-r from-purple-600 to-pink-600">
-                    <Plus className="w-4 h-4 mr-2" /> New Post
-                </Button>
-            </div>
+  const openPost = (post) => {
+    setSelectedPost(post);
+    setCreatePostOpen(true);
+  };
 
-            <Card className="border-slate-200">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <MessageSquare className="w-5 h-5 text-purple-600" /> Recent Discussions
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-3">
-                        {posts.map((post) => (
-                            <div key={post.id} className="p-4 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
-                                <h4 className="font-semibold text-slate-900">{post.title}</h4>
-                                <p className="text-slate-500">by {post.author_name}</p>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+  return (
+    <div>
+      <Button onClick={() => setCreatePostOpen(true)}>Create Post</Button>
+      <div className="grid md:grid-cols-2 gap-4">
+        {posts.map((post) => (
+          <Card key={post.id} onClick={() => openPost(post)}>
+            <CardContent>
+              <CardHeader>
+                <CardTitle>{post.title}</CardTitle>
+              </CardHeader>
+              <p>{post.content}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-            <Dialog open={createPostOpen} onOpenChange={setCreatePostOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Create a New Post</DialogTitle>
-                    </DialogHeader>
-                    <Label htmlFor="post-title">Title</Label>
-                    <Input id="post-title" value={newPost.title} onValueChange={(val) => setNewPost({ ...newPost, title: val })} />
-                    <Label htmlFor="post-content">Content</Label>
-                    <Textarea id="post-content" value={newPost.content} onValueChange={(val) => setNewPost({ ...newPost, content: val })} />
-                    <Label htmlFor="post-category">Category</Label>
-                    <Select value={newPost.category} onValueChange={(val) => setNewPost({ ...newPost, category: val })}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="general">General</SelectItem>
-                            <SelectItem value="recipes">Recipes</SelectItem>
-                            <SelectItem value="nutrition">Nutrition</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Button onClick={handleCreatePost}>Create Post</Button>
-                </DialogContent>
-            </Dialog>
-        </div>
-    );
-};
-
-export default Forum;
+      <Dialog open={createPostOpen} onOpenChange={setCreatePostOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Post</DialogTitle>
+          </DialogHeader>
+          <Label htmlFor="title">Title</Label>
+          <Input id="title" value={newPost.title} onValueChange={(e) => setNewPost({ ...newPost, title: e })} />
+          <Label htmlFor="content">Content</Label>
+          <Textarea id="content" value={newPost.content} onValueChange={(e) => setNewPost({ ...newPost, content: e })} />
+          <Button onClick={handleCreatePost}>Submit</Button>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

@@ -10,50 +10,73 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format, subDays } from 'date-fns';
-import { useAuth } from '@/contexts/AuthContext';
+import ShareProgressDialog from '@/components/progress/ShareProgressDialog';
 import FoodDatabaseSearch from '@/components/nutrition/FoodDatabaseSearch';
 import MicronutrientTargetSelector from '@/components/nutrition/MicronutrientTargetSelector';
 import MicronutrientProgressCard from '@/components/nutrition/MicronutrientProgressCard';
-import ShareProgressDialog from '@/components/progress/ShareProgressDialog';
 import { apiFetch } from '@/lib/api';
-
-interface Goal {
-    id?: string;
-    goal_type: string;
-    target_calories: number;
-    target_protein: number;
-    target_carbs: number;
-    target_fat: number;
-    target_micronutrients?: { [key: string]: any };
-    is_active: boolean;
-}
-
-interface Log {
-    log_date: string;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    servings?: number;
-    micronutrients?: { [key: string]: { value: number; unit: string } };
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 const NutritionTracking: React.FC = () => {
-    const { user } = useAuth();
-    const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-    const [goalDialogOpen, setGoalDialogOpen] = useState(false);
-    const [logDialogOpen, setLogDialogOpen] = useState(false);
-    const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
-    const [goalForm, setGoalForm] = useState<Goal>({
-        goal_type: 'daily',
-        target_calories: 2000,
-        target_protein: 150,
-        target_carbs: 200,
-        target_fat: 65,
-        target_micronutrients: {}
-    });
-    const [logForm, setLogForm] = useState({
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+  const [logDialogOpen, setLogDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [logMethod, setLogMethod] = useState('manual');
+  const [goalForm, setGoalForm] = useState({
+    goal_type: 'daily',
+    target_calories: 2000,
+    target_protein: 150,
+    target_carbs: 200,
+    target_fat: 65,
+    target_micronutrients: {}
+  });
+
+  const [logForm, setLogForm] = useState({
+    recipe_name: '',
+    meal_type: 'lunch',
+    log_date: format(new Date(), 'yyyy-MM-dd'),
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    servings: 1,
+    micronutrients: {},
+    food_source: 'manual',
+    food_id: null
+  });
+
+  const queryClient = useQueryClient();
+
+  const { data: goals = [] } = useQuery({
+    queryKey: ['nutritionGoals', user?.email],
+    queryFn: () => apiFetch('GET', `/api/nutritiongoals?created_by=${user?.email}`),
+    enabled: !!user?.email
+  });
+
+  const { data: logs = [] } = useQuery({
+    queryKey: ['nutritionLogs', user?.email],
+    queryFn: () => apiFetch('GET', `/api/nutritionlogs?created_by=${user?.email}`),
+    enabled: !!user?.email
+  });
+
+  const createGoalMutation = useMutation({
+    mutationFn: (data) => apiFetch('POST', '/api/nutritiongoals', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutritionGoals'] });
+      toast.success('Goal saved!');
+      setGoalDialogOpen(false);
+    },
+  });
+
+  const createLogMutation = useMutation({
+    mutationFn: (data) => apiFetch('POST', '/api/nutritionlogs', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutritionLogs'] });
+      toast.success('Meal logged!');
+      setLogDialogOpen(false);
+      setLogForm({
         recipe_name: '',
         meal_type: 'lunch',
         log_date: format(new Date(), 'yyyy-MM-dd'),
@@ -65,87 +88,53 @@ const NutritionTracking: React.FC = () => {
         micronutrients: {},
         food_source: 'manual',
         food_id: null
-    });
+      });
+    },
+  });
 
-    const { data: goals = [] } = useQuery({
-        queryKey: ['nutritionGoals', user?.email],
-        queryFn: () => apiFetch('GET', `/api/nutritiongoals?created_by=${user?.email}`),
-        enabled: !!user?.email,
-    });
+  const handleSaveGoal = () => {
+    createGoalMutation.mutate(goalForm);
+  };
 
-    const createGoalMutation = useMutation({
-        mutationFn: (data: Goal) => apiFetch('POST', '/api/nutritiongoals', data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['nutritionGoals'] });
-            toast.success('Goal saved!');
-            setGoalDialogOpen(false);
-            setEditingGoal(null);
-        },
-    });
+  const handleLogFood = () => {
+    createLogMutation.mutate(logForm);
+  };
 
-    const updateGoalMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: Goal; }) => apiFetch('PUT', `/api/nutritiongoals/${id}`, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['nutritionGoals'] });
-            toast.success('Goal updated!');
-            setGoalDialogOpen(false);
-            setEditingGoal(null);
-        },
-    });
+  return (
+    <div>
+      <Button onClick={() => setGoalDialogOpen(true)}>Set Goal</Button>
+      <Dialog open={goalDialogOpen} onOpenChange={setGoalDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Nutrition Goal</DialogTitle>
+          </DialogHeader>
+          <Label>Target Calories</Label>
+          <Input type="number" value={goalForm.target_calories} onChange={(e) => setGoalForm({ ...goalForm, target_calories: +e.target.value })} />
+          <Button onClick={handleSaveGoal}>Save Goal</Button>
+        </DialogContent>
+      </Dialog>
 
-    const { data: logs = [] } = useQuery({
-        queryKey: ['nutritionLogs', user?.email],
-        queryFn: () => apiFetch('GET', `/api/nutritionlogs?created_by=${user?.email}`),
-        enabled: !!user?.email,
-    });
+      <Button onClick={() => setLogDialogOpen(true)}>Log Meal</Button>
+      <Dialog open={logDialogOpen} onOpenChange={setLogDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log Meal</DialogTitle>
+          </DialogHeader>
+          <Label>Recipe Name</Label>
+          <Input value={logForm.recipe_name} onChange={(e) => setLogForm({ ...logForm, recipe_name: e.target.value })} />
+          <Label>Calories</Label>
+          <Input type="number" value={logForm.calories} onChange={(e) => setLogForm({ ...logForm, calories: +e.target.value })} />
+          <Button onClick={handleLogFood}>Log Meal</Button>
+        </DialogContent>
+      </Dialog>
 
-    const handleSaveGoal = () => {
-        if (editingGoal) {
-            updateGoalMutation.mutate({ id: editingGoal.id!, data: goalForm });
-        } else {
-            // Deactivate other active goals of same type
-            const otherGoals = goals.filter(g => g.goal_type === goalForm.goal_type && g.is_active);
-            otherGoals.forEach(g => {
-                apiFetch('PUT', `/api/nutritiongoals/${g.id}`, { is_active: false });
-            });
-            createGoalMutation.mutate({ ...goalForm, is_active: true });
-        }
-    };
+      {/* Other components like MicronutrientProgressCard or FoodDatabaseSearch can be placed here */}
 
-    return (
-        <div>
-            <h1 className="text-2xl font-bold">Nutrition Tracking</h1>
-            <Button onClick={() => setGoalDialogOpen(true)}>Add Goal</Button>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Your Goals</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {goals.map(goal => (
-                        <div key={goal.id} className="p-2 border-b">
-                            <div>{goal.goal_type}: {goal.target_calories} Calories</div>
-                            <Button onClick={() => { setEditingGoal(goal); setGoalDialogOpen(true); }}>Edit</Button>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
-
-            <Dialog open={goalDialogOpen} onOpenChange={setGoalDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingGoal ? 'Edit Goal' : 'Add New Goal'}</DialogTitle>
-                    </DialogHeader>
-                    <Label className="block mb-2">Calories</Label>
-                    <Input type="number" value={goalForm.target_calories} onChange={e => setGoalForm({ ...goalForm, target_calories: parseInt(e.target.value) })} />
-                    <Button onClick={handleSaveGoal}>Save</Button>
-                </DialogContent>
-            </Dialog>
-
-            <FoodDatabaseSearch onSelectFood={(food) => {/* Handle food selection here */}} />
-            <MicronutrientProgressCard logs={logs} activeGoal={goals.find(g => g.is_active) || undefined} />
-            <ShareProgressDialog open={logDialogOpen} onOpenChange={setLogDialogOpen} logs={logs} />
-        </div>
-    );
+      <MicronutrientProgressCard logs={logs} activeGoal={goals.find(g => g.is_active)} />
+      <FoodDatabaseSearch onSelectFood={(food) => setLogForm({ ...logForm, ...food })} />
+      <MicronutrientTargetSelector targets={goalForm.target_micronutrients} onChange={(newTargets) => setGoalForm({ ...goalForm, target_micronutrients: newTargets })} />
+    </div>
+  );
 };
 
 export default NutritionTracking;

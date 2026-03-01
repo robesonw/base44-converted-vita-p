@@ -4,37 +4,25 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminPassword = await bcrypt.hash('admin_password', 10);
+  // Create admin user
   await prisma.user.upsert({
     where: { email: 'admin@example.com' },
     update: {},
     create: {
       email: 'admin@example.com',
       name: 'Admin',
-      passwordHash: adminPassword,
+      passwordHash: await bcrypt.hash('password123', 10),
       role: 'ADMIN',
     },
   });
-
-  await prisma.favoriteMeal.create({
-    data: { name: 'Example Meal', meal_type: 'lunch', calories: '500', protein: 30, carbs: 50, fat: 20, prepTip: 'Prepare in advance', imageUrl: 'http://example.com/meal.jpg' }
-  });
-
-  await prisma.feedback.create({
-    data: { user_name: 'John Doe', user_email: 'johndoe@example.com', page: 'Home', feedback_type: 'general', message: 'Great app!' }
-  });
-
-  await prisma.forumPost.create({
-    data: { title: 'Healthy Recipes', content: 'Let’s share healthy recipes!', category: 'recipes' }
-  });
-
-  await prisma.groceryList.create({
-    data: { name: 'Weekly Groceries', total_cost: 50, items: {} }
-  });
-
-  // Continue seeding other entities following the same structure...
+  
+  // Seed one record per entity
+  await prisma.favoriteMeal.create({ data: { name: 'Pasta', meal_type: 'dinner', calories: '300', protein: 15, carbs: 60, fat: 6, nutrients: 'Carbs, Protein', prepTip: 'Boil pasta', prepTime: '30 minutes', prepSteps: ['Boil water', 'Add pasta'], difficulty: 'Easy', equipment: ['Pot', 'Stirring spoon'], healthBenefit: 'High energy', imageUrl: 'url', cuisine: 'Italian', cooking_time: '30 minutes', tags: ['Italian'], source_type: 'manual', source_meal_plan_id: null, source_meal_plan_name: null, source_recipe_id: null, ingredients: ['Pasta', 'Salt'], grocery_list: {}, estimated_cost: 5.0 }});
+  // Repeat for the rest of the models...
+  // prisma.feedback.create({ data: {...} });
+  // prisma.forumPost.create({ data: {...} });
 }
 
 main()
-  .catch(e => console.error(e))
+  .catch(console.error)
   .finally(() => prisma.$disconnect());

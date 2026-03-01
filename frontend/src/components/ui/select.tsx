@@ -1,14 +1,29 @@
-import { Select as RadixSelect, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectLabel, SelectItem, SelectSeparator, SelectScrollUpButton, SelectScrollDownButton } from '@radix-ui/react-select';
-import { ChevronDown } from 'lucide-react';
+import { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectLabel, SelectItem, SelectSeparator, SelectScrollUpButton, SelectScrollDownButton } from '@radix-ui/react-select';
+import { ChevronDown, Check } from 'lucide-react';
 
-export const Select = ({ children, ...props }) => (
-  <RadixSelect {...props}>
-    <SelectTrigger>
-      <ChevronDown />
-      <SelectValue />
-    </SelectTrigger>
-    <SelectContent>{children}</SelectContent>
-  </RadixSelect>
+const SelectTriggerWithIcon = (props) => (
+  <SelectTrigger {...props}>
+    <span className="flex-grow">{props.children}</span>
+    <ChevronDown className="h-4 w-4" />
+  </SelectTrigger>
 );
 
-export { SelectGroup, SelectValue, SelectLabel, SelectItem, SelectSeparator, SelectScrollUpButton, SelectScrollDownButton };
+const SelectItemWithCheck = (props) => (
+  <SelectItem value={props.value} {...props}>
+    <span className="flex-grow">{props.children}</span>
+    {props.selected && <Check className="h-4 w-4" />}
+  </SelectItem>
+);
+
+export {
+  Select,
+  SelectGroup,
+  SelectValue,
+  SelectTriggerWithIcon as SelectTrigger,
+  SelectContent,
+  SelectLabel,
+  SelectItemWithCheck as SelectItem,
+  SelectSeparator,
+  SelectScrollUpButton,
+  SelectScrollDownButton,
+};

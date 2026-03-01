@@ -1,50 +1,35 @@
-// SharedRecipe CRUD Routes
-import { Router } from 'express';
+import express from 'express';
 import prisma from '../lib/prisma';
 import { verifyToken } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 
-// List
-router.get('/api/sharedrecipe', verifyToken, async (req, res) => {
-    const { filter, sort, limit, offset } = req.query;
-    // Implement filtering, sorting, limit, and offset logic here
-    const recipes = await prisma.sharedRecipe.findMany({});
-    res.json(recipes);
+router.use(verifyToken);
+
+router.get('/api/sharedrecipe', async (req, res) => {
+  const { filter, sort, limit, offset } = req.query;
+  // Logic to retrieve all SharedRecipes based on filters, sorting, limit and offset
 });
 
-// Create
-router.post('/api/sharedrecipe', verifyToken, async (req, res) => {
-    const { title, ingredients, instructions } = req.body;
-    const newRecipe = await prisma.sharedRecipe.create({
-        data: { title, ingredients, instructions },
-    });
-    res.status(201).json(newRecipe);
+router.post('/api/sharedrecipe', async (req, res) => {
+  const { /* shared recipe fields */ } = req.body;
+  // Logic to create a new SharedRecipe
 });
 
-// Get One
-router.get('/api/sharedrecipe/:id', verifyToken, async (req, res) => {
-    const { id } = req.params;
-    const recipe = await prisma.sharedRecipe.findUnique({ where: { id: Number(id) } });
-    res.json(recipe);
+router.get('/api/sharedrecipe/:id', async (req, res) => {
+  const { id } = req.params;
+  // Logic to get a SharedRecipe by id
 });
 
-// Update
-router.put('/api/sharedrecipe/:id', verifyToken, async (req, res) => {
-    const { id } = req.params;
-    const { title, ingredients, instructions } = req.body;
-    const updatedRecipe = await prisma.sharedRecipe.update({
-        where: { id: Number(id) },
-        data: { title, ingredients, instructions },
-    });
-    res.json(updatedRecipe);
+router.put('/api/sharedrecipe/:id', async (req, res) => {
+  const { id } = req.params;
+  const { /* updated shared recipe fields */ } = req.body;
+  // Logic to update a SharedRecipe by id
 });
 
-// Delete
-router.delete('/api/sharedrecipe/:id', verifyToken, async (req, res) => {
-    const { id } = req.params;
-    await prisma.sharedRecipe.delete({ where: { id: Number(id) } });
-    res.status(204).send();
+router.delete('/api/sharedrecipe/:id', async (req, res) => {
+  const { id } = req.params;
+  // Logic to delete a SharedRecipe by id
 });
 
 export default router;

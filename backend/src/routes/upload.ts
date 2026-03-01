@@ -1,11 +1,13 @@
-import { Router } from 'express';
+import express from 'express';
 import multer from 'multer';
 
+const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
-const router = Router();
 
 router.post('/', upload.single('file'), (req, res) => {
-    res.json({ url: `/uploads/${req.file.filename}` });
+    const file = req.file;
+    if (!file) return res.status(400).send('No file uploaded');
+    res.json({ url: `/uploads/${file.filename}` });
 });
 
 export default router;

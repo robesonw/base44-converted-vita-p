@@ -1,11 +1,12 @@
 import { cva } from 'class-variance-authority';
-import { cn } from '@/lib/utils';
+import cn from '@/lib/utils';
 
-export const badgeVariants = cva('inline-flex items-center rounded-full px-2 text-xs font-medium', {
+export const badgeVariants = cva('px-2 py-1 text-sm font-medium rounded-full', {
   variants: {
     variant: {
       default: 'bg-blue-500 text-white',
-      secondary: 'bg-gray-500 text-white',
+      outline: 'border border-gray-400 text-gray-700',
+      ghost: 'bg-transparent text-gray-500',
     },
   },
   defaultVariants: {

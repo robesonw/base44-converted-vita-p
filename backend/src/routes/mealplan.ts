@@ -6,44 +6,41 @@ const router = express.Router();
 
 router.use(verifyToken);
 
-// GET /api/mealplan
-router.get('/mealplan', async (req, res) => {
+// List Meal Plans
+router.get('/api/mealplan', async (req, res) => {
     const { filter, sort, limit, offset } = req.query;
-    const mealPlans = await prisma.mealPlan.findMany();
+    // Implement filtering, sorting, pagination logic here
+    const mealPlans = await prisma.mealPlan.findMany({});
     res.json(mealPlans);
 });
 
-// POST /api/mealplan
-router.post('/mealplan', async (req, res) => {
+// Create Meal Plan
+router.post('/api/mealplan', async (req, res) => {
     const { data } = req.body;
     const mealPlan = await prisma.mealPlan.create({ data });
     res.status(201).json(mealPlan);
 });
 
-// GET /api/mealplan/:id
-router.get('/mealplan/:id', async (req, res) => {
+// Get Meal Plan by ID
+router.get('/api/mealplan/:id', async (req, res) => {
     const { id } = req.params;
-    const mealPlan = await prisma.mealPlan.findUnique({ where: { id: parseInt(id) } });
-    if (!mealPlan) return res.status(404).send('MealPlan not found');
+    const mealPlan = await prisma.mealPlan.findUnique({ where: { id: Number(id) } });
     res.json(mealPlan);
 });
 
-// PUT /api/mealplan/:id
-router.put('/mealplan/:id', async (req, res) => {
+// Update Meal Plan
+router.put('/api/mealplan/:id', async (req, res) => {
     const { id } = req.params;
     const { data } = req.body;
-    const mealPlan = await prisma.mealPlan.update({
-        where: { id: parseInt(id) },
-        data,
-    });
+    const mealPlan = await prisma.mealPlan.update({ where: { id: Number(id) }, data });
     res.json(mealPlan);
 });
 
-// DELETE /api/mealplan/:id
-router.delete('/mealplan/:id', async (req, res) => {
+// Delete Meal Plan
+router.delete('/api/mealplan/:id', async (req, res) => {
     const { id } = req.params;
-    const mealPlan = await prisma.mealPlan.delete({ where: { id: parseInt(id) } });
-    res.json(mealPlan);
+    await prisma.mealPlan.delete({ where: { id: Number(id) } });
+    res.status(204).send();
 });
 
 export default router;

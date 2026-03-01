@@ -1,15 +1,1 @@
-# Use Node.js 20 runtime
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package.json yarn.lock ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-# Production image
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/dist ./
-COPY --from=builder /app/package*.json ./
-RUN npm install --production
-CMD [ "node", "index.js" ]
+# Dockerfile\nFROM node:20-alpine AS builder\nWORKDIR /app\nCOPY package.json package-lock.json ./\nRUN npm install\nCOPY . .\nRUN npm run build\n\nFROM node:20-alpine\nWORKDIR /app\nCOPY --from=builder /app/dist ./dist\nCOPY package.json .\nRUN npm install --only=production\nEXPOSE 4000\nCMD [ "node", "dist/index.js" ]

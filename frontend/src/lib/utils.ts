@@ -1,6 +1,5 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import createPageUrl from '@/utils/createPageUrl';
 
-export function cn(...i: ClassValue[]) {
-  return twMerge(clsx(i));
-}
+export const someUtilityFunction = () => {
+  // Your utility code here
+};

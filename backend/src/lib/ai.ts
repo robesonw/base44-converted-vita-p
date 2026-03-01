@@ -6,10 +6,10 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-export async function invokeLLM({ prompt, systemPrompt, jsonSchema }) {
+export const invokeLLM = async ({ prompt, systemPrompt, jsonSchema }) => {
     const response = await openai.createChatCompletion({
         model: config.aiModel,
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: 'user', content: prompt }],
     });
     return response.data.choices[0].message.content;
-}
+};

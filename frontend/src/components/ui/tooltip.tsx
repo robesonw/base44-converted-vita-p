@@ -1,5 +1,3 @@
-import { Tooltip as RadixTooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@radix-ui/react-tooltip';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@radix-ui/react-tooltip';
 
-export { TooltipProvider, TooltipTrigger, TooltipContent };
-
-export const Tooltip = ({ children }) => <RadixTooltip>{children}</RadixTooltip>;
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };

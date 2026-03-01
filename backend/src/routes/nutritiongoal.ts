@@ -6,44 +6,41 @@ const router = express.Router();
 
 router.use(verifyToken);
 
-// GET /api/nutritiongoal
-router.get('/nutritiongoal', async (req, res) => {
+// List Nutrition Goals
+router.get('/api/nutritiongoal', async (req, res) => {
     const { filter, sort, limit, offset } = req.query;
-    const nutritionGoals = await prisma.nutritionGoal.findMany();
+    // Implement filtering, sorting, pagination logic here
+    const nutritionGoals = await prisma.nutritionGoal.findMany({});
     res.json(nutritionGoals);
 });
 
-// POST /api/nutritiongoal
-router.post('/nutritiongoal', async (req, res) => {
+// Create Nutrition Goal
+router.post('/api/nutritiongoal', async (req, res) => {
     const { data } = req.body;
     const nutritionGoal = await prisma.nutritionGoal.create({ data });
     res.status(201).json(nutritionGoal);
 });
 
-// GET /api/nutritiongoal/:id
-router.get('/nutritiongoal/:id', async (req, res) => {
+// Get Nutrition Goal by ID
+router.get('/api/nutritiongoal/:id', async (req, res) => {
     const { id } = req.params;
-    const nutritionGoal = await prisma.nutritionGoal.findUnique({ where: { id: parseInt(id) } });
-    if (!nutritionGoal) return res.status(404).send('NutritionGoal not found');
+    const nutritionGoal = await prisma.nutritionGoal.findUnique({ where: { id: Number(id) } });
     res.json(nutritionGoal);
 });
 
-// PUT /api/nutritiongoal/:id
-router.put('/nutritiongoal/:id', async (req, res) => {
+// Update Nutrition Goal
+router.put('/api/nutritiongoal/:id', async (req, res) => {
     const { id } = req.params;
     const { data } = req.body;
-    const nutritionGoal = await prisma.nutritionGoal.update({
-        where: { id: parseInt(id) },
-        data,
-    });
+    const nutritionGoal = await prisma.nutritionGoal.update({ where: { id: Number(id) }, data });
     res.json(nutritionGoal);
 });
 
-// DELETE /api/nutritiongoal/:id
-router.delete('/nutritiongoal/:id', async (req, res) => {
+// Delete Nutrition Goal
+router.delete('/api/nutritiongoal/:id', async (req, res) => {
     const { id } = req.params;
-    const nutritionGoal = await prisma.nutritionGoal.delete({ where: { id: parseInt(id) } });
-    res.json(nutritionGoal);
+    await prisma.nutritionGoal.delete({ where: { id: Number(id) } });
+    res.status(204).send();
 });
 
 export default router;

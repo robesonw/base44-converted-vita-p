@@ -1,20 +1,22 @@
-import { NextFunction, Request, Response } from 'express';
-import { verifyToken } from '../lib/jwt';
+import jwt from 'jsonwebtoken';
+import { Request, Response, NextFunction } from 'express';
+import { config } from '../config';
 
-export function verifyAuthToken(req: Request, res: Response, next: NextFunction) {
+export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
     const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return res.status(403).json({ message: 'No token provided.' });
-    verifyToken(token)
-        .then((decoded) => {
-            req.user = decoded;
-            next();
-        })
-        .catch((err) => res.status(401).json({ message: 'Unauthorized.', error: err }));
-}
+    if (!token) return res.status(403).send('Token is required');
+    jwt.verify(token, config.jwtSecret, (err, decoded) => {
+        if (err) return res.status(401).send('Unauthorized');
+        req.user = decoded;
+        next();
+    });
+};
 
-export function requireRole(...roles: string[]) {
+export const requireRole = (...roles: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
-        if (!roles.includes(req.user.role)) return res.status(403).json({ message: 'Forbidden' });
+        if (!req.user || !roles.includes(req.user.role)) {
+            return res.status(403).send('Forbidden');
+        }
         next();
     };
-}
+};

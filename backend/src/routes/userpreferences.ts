@@ -1,49 +1,35 @@
-// UserPreferences CRUD Routes
-import { Router } from 'express';
+import express from 'express';
 import prisma from '../lib/prisma';
 import { verifyToken } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 
-// List
-router.get('/api/userpreferences', verifyToken, async (req, res) => {
-    const { filter, sort, limit, offset } = req.query;
-    const preferences = await prisma.userPreferences.findMany({});
-    res.json(preferences);
+router.use(verifyToken);
+
+router.get('/api/userpreferences', async (req, res) => {
+  const { filter, sort, limit, offset } = req.query;
+  // Logic to retrieve all UserPreferences based on filters, sorting, limit and offset
 });
 
-// Create
-router.post('/api/userpreferences', verifyToken, async (req, res) => {
-    const { userId, preferences } = req.body;
-    const newPreferences = await prisma.userPreferences.create({
-        data: { userId, preferences },
-    });
-    res.status(201).json(newPreferences);
+router.post('/api/userpreferences', async (req, res) => {
+  const { /* user preferences fields */ } = req.body;
+  // Logic to create a new UserPreference
 });
 
-// Get One
-router.get('/api/userpreferences/:id', verifyToken, async (req, res) => {
-    const { id } = req.params;
-    const preference = await prisma.userPreferences.findUnique({ where: { id: Number(id) } });
-    res.json(preference);
+router.get('/api/userpreferences/:id', async (req, res) => {
+  const { id } = req.params;
+  // Logic to get a UserPreference by id
 });
 
-// Update
-router.put('/api/userpreferences/:id', verifyToken, async (req, res) => {
-    const { id } = req.params;
-    const { userId, preferences } = req.body;
-    const updatedPreferences = await prisma.userPreferences.update({
-        where: { id: Number(id) },
-        data: { userId, preferences },
-    });
-    res.json(updatedPreferences);
+router.put('/api/userpreferences/:id', async (req, res) => {
+  const { id } = req.params;
+  const { /* updated user preferences fields */ } = req.body;
+  // Logic to update a UserPreference by id
 });
 
-// Delete
-router.delete('/api/userpreferences/:id', verifyToken, async (req, res) => {
-    const { id } = req.params;
-    await prisma.userPreferences.delete({ where: { id: Number(id) } });
-    res.status(204).send();
+router.delete('/api/userpreferences/:id', async (req, res) => {
+  const { id } = req.params;
+  // Logic to delete a UserPreference by id
 });
 
 export default router;

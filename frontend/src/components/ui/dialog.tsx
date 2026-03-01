@@ -1,7 +1,10 @@
-import { Dialog as RadixDialog, DialogPortal, DialogOverlay, DialogClose, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@radix-ui/react-dialog';
+import { Dialog, DialogPortal, DialogOverlay, DialogClose, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 
-export const Dialog = ({ children }) => <RadixDialog>{children}</RadixDialog>;
-export { DialogPortal, DialogOverlay, DialogClose, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription };
+export { Dialog, DialogPortal, DialogOverlay, DialogClose, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription };
 
-export const DialogCloseButton = () => <DialogClose><X /></DialogClose>;
+export const DialogCloseButton = (props) => (
+  <DialogClose {...props}>
+    <X className="h-5 w-5" />
+  </DialogClose>
+);

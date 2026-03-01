@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { apiFetch } from '@/lib/api';
+import { base44 } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,115 +8,165 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
-
-interface MealPlan {
-  id: string;
-  title: string;
-  description: string;
-  diet_type: string;
-  plan_data: object;
-  author_name: string;
-}
+import PlanDetailsView from '../components/plans/PlanDetailsView';
+import SharedPlanDetailDialog from '../components/community/SharedPlanDetailDialog';
+import createPageUrl from '@/utils/createPageUrl';
 
 export default function SharedMealPlans() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [selectedPlanForShare, setSelectedPlanForShare] = useState(null);
   const [shareForm, setShareForm] = useState({ title: '', description: '', tags: '' });
+  const [viewingPlan, setViewingPlan] = useState(null);
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [ratingForm, setRatingForm] = useState({ rating: 5, comment: '' });
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedPlanDetail, setSelectedPlanDetail] = useState(null);
+
   const queryClient = useQueryClient();
 
-  const { data: sharedPlans = [] } = useQuery<MealPlan[]>('sharedMealPlans', () => 
-    apiFetch('GET', '/api/sharedMealPlans')
-  );
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: sharedPlans = [] } = useQuery({
+    queryKey: ['sharedMealPlans'],
+    queryFn: () => base44.entities.SharedMealPlan.list('-created_date'),
+  });
+
+  const { data: myPlans = [] } = useQuery({
+    queryKey: ['mealPlans'],
+    queryFn: () => base44.entities.MealPlan.list('-created_date'),
+  });
+
+  const { data: reviews = [] } = useQuery({
+    queryKey: ['reviews'],
+    queryFn: () => base44.entities.Review.list(),
+  });
+
+  const { data: following = [] } = useQuery({
+    queryKey: ['following', user?.email],
+    queryFn: () => base44.entities.UserFollow.filter({ created_by: user?.email }),
+    enabled: !!user?.email,
+  });
 
   const sharePlanMutation = useMutation({
-    mutationFn: (data) => apiFetch('POST', '/api/sharedMealPlans', data),
+    mutationFn: (data) => base44.entities.SharedMealPlan.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries('sharedMealPlans');
-      toast.success('Meal plan shared!');
+      queryClient.invalidateQueries({ queryKey: ['sharedMealPlans'] });
+      toast.success('Meal plan shared with the community!');
       setShareDialogOpen(false);
       setShareForm({ title: '', description: '', tags: '' });
     },
   });
 
+  const addReviewMutation = useMutation({
+    mutationFn: (data) => base44.entities.Review.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      toast.success('Review added!');
+      setRatingDialogOpen(false);
+      setRatingForm({ rating: 5, comment: '' });
+    },
+  });
+
+  const followMutation = useMutation({
+    mutationFn: (data) => base44.entities.UserFollow.create(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['following'] });
+      toast.success(`Following ${variables.following_user_name}`);
+        
+      // Create notification
+      base44.entities.Notification.create({
+        recipient_email: variables.following_user_email,
+        type: 'new_follower',
+        title: 'New Follower',
+        message: `${user?.name || 'Someone'} started following you`,
+        actor_name: user?.name || 'Anonymous',
+      });
+    },
+  });
+
+  const unfollowMutation = useMutation({
+    mutationFn: (followId) => base44.entities.UserFollow.delete(followId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['following'] });
+      toast.success('Unfollowed');
+    },
+  });
+
+  const interactionMutation = useMutation({
+    mutationFn: (data) => base44.entities.UserInteraction.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sharedMealPlans'] });
+    },
+  });
+
   const handleShare = () => {
-    if (!shareForm.title) {
-      toast.error('Please enter a title');
+    if (!selectedPlanForShare || !shareForm.title) {
+      toast.error('Please fill in required fields');
       return;
     }
 
     sharePlanMutation.mutate({
-      ...shareForm,
-      plan_data: {}, // Add actual plan data here
-diet_type: 'general',
-      author_name: 'Anonymous',
+      original_plan_id: selectedPlanForShare.id,
+      title: shareForm.title,
+      description: shareForm.description,
+      plan_data: selectedPlanForShare,
+      diet_type: selectedPlanForShare.diet_type,
+      cultural_style: selectedPlanForShare.cultural_style,
+      tags: shareForm.tags.split(',').map(t => t.trim()).filter(Boolean),
+      author_name: user?.name || 'Anonymous',
     });
   };
 
+  const handleLike = (plan) => {
+    interactionMutation.mutate({
+      target_id: plan.id,
+      target_type: 'shared_plan',
+      interaction_type: 'like',
+    });
+    
+    // Create notification for author
+    if (plan.created_by && plan.created_by !== user?.email) {
+      base44.entities.Notification.create({
+        recipient_email: plan.created_by,
+        type: 'plan_like',
+        title: 'Meal Plan Liked',
+        message: `${user?.name || 'Someone'} liked your meal plan "${plan.title}"`,
+        actor_name: user?.name || 'Anonymous',
+      });
+    }
+    
+    toast.success('Liked!');
+  };
+
+  const isFollowing = (userEmail) => {
+    return following.some(f => f.following_user_email === userEmail);
+  };
+
+  const handleFollow = (plan) => {
+    if (!plan.created_by) return;
+    
+    const existingFollow = following.find(f => f.following_user_email === plan.created_by);
+    
+    if (existingFollow) {
+      unfollowMutation.mutate(existingFollow.id);
+    } else {
+      followMutation.mutate({
+        following_user_email: plan.created_by,
+        following_user_name: plan.author_name,
+      });
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-slate-900">Shared Meal Plans</h1>
-        <Button onClick={() => setShareDialogOpen(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Submit Meal Plan
-        </Button>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="relative">
-        <Input
-          placeholder="Search meal plans..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {/* Meal Plans List */}
-      <div className="grid grid-cols-1 gap-4 mt-4">
-        {sharedPlans.filter(plan => plan.title.toLowerCase().includes(searchTerm.toLowerCase())).map(plan => (
-          <Card key={plan.id} className="border-slate-200">
-            <CardHeader>
-              <CardTitle>{plan.title}</CardTitle>
-              <div className="flex items-center justify-between">
-                <Badge>{plan.diet_type}</Badge>
-                <span className="text-sm text-slate-500">by {plan.author_name}</span>
-              </div>
-            </CardHeader>
-            <CardContent>{plan.description}</CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Share Plan Dialog */}
-      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Share a Meal Plan</DialogTitle>
-          </DialogHeader>
-          <Label>
-            Title
-            <Input value={shareForm.title} onChange={(e) => setShareForm({ ...shareForm, title: e.target.value })} />
-          </Label>
-          <Label>
-            Description
-            <Textarea value={shareForm.description} onChange={(e) => setShareForm({ ...shareForm, description: e.target.value })} />
-          </Label>
-          <Select value={shareForm.diet_type} onValueChange={(val) => setShareForm({ ...shareForm, diet_type: val })}>
-            <SelectTrigger><SelectValue placeholder="Select a diet type" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="vegetarian">Vegetarian</SelectItem>
-              <SelectItem value="vegan">Vegan</SelectItem>
-              <SelectItem value="keto">Keto</SelectItem>
-              <SelectItem value="paleo">Paleo</SelectItem>
-              <SelectItem value="pescatarian">Pescatarian</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={handleShare} className="mt-4">Share</Button>
-        </DialogContent>
-      </Dialog>
+    <div>
+      {/* UI Components Here */}
     </div>
   );
 }

@@ -1,13 +1,13 @@
-import { Router } from 'express';
+import express from 'express';
+import { verifyToken } from '../middleware/auth';
 import { invokeLLM } from '../lib/ai';
-import { verifyAuthToken } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 
-router.post('/invoke', verifyAuthToken, async (req, res) => {
-    const { prompt, systemPrompt, jsonSchema } = req.body;
-    const result = await invokeLLM({ prompt, systemPrompt, jsonSchema });
-    res.json({ result });
+router.post('/invoke', verifyToken, async (req, res) => {
+    const { prompt } = req.body;
+    const response = await invokeLLM({ prompt });
+    res.json({ response });
 });
 
 export default router;

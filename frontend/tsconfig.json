@@ -1,1 +1,1 @@
-{ "compilerOptions": { "target": "ESNext", "module": "ESNext", "strict": true, "moduleResolution": "bundler", "jsx": "react-jsx", "baseUrl": ".", "paths": { "@/*": ["./src/*"] } } }
+{\n  "compilerOptions": {\n    "target": "esnext",\n    "module": "esnext",\n    "strict": true,\n    "moduleResolution": "bundler",\n    "esModuleInterop": true,\n    "skipLibCheck": true,\n    "baseUrl": "./",\n    "paths": {\n      "@/*": ["./src/*"]\n    }\n  },\n  "include": [\n    "src"\n  ]\n}

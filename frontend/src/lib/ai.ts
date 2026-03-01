@@ -1,5 +1,1 @@
-import { apiFetch } from '@/lib/api';
-
-export async function invokeAI(opts: { prompt: string; systemPrompt?: string; jsonSchema?: object }): Promise<unknown> {
-  return apiFetch('POST', '/api/ai/invoke', opts);
-}
+import { apiFetch } from '@/lib/api';\n\nexport async function invokeAI(opts: { prompt: string; systemPrompt?: string; jsonSchema?: object }): Promise<unknown> {\n  return apiFetch('POST', '/api/ai/invoke', opts);\n}

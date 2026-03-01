@@ -1,53 +1,48 @@
-import { Router } from 'express';
+import express from 'express';
 import prisma from '../lib/prisma';
 import { verifyToken } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 
-router.use(verifyToken);
-
-// List
-router.get('/api/recipecomment', async (req, res) => {
-  const { filter, sort, limit, offset } = req.query;
-  const comments = await prisma.recipeComment.findMany({
-    take: Number(limit) || undefined,
-    skip: Number(offset) || undefined,
-    // Add filtering and sorting logic here
-  });
-  res.json(comments);
+router.get('/api/recipecomment', verifyToken, async (req, res) => {
+    const { filter, sort, limit, offset } = req.query;
+    // Implement filtering, sorting, limiting, and offset here
+    const comments = await prisma.recipeComment.findMany({
+        // add appropriate query options based on filter, sort, limit, offset
+    });
+    res.json(comments);
 });
 
-// Create
-router.post('/api/recipecomment', async (req, res) => {
-  const { content } = req.body;
-  const newComment = await prisma.recipeComment.create({ data: { content } });
-  res.status(201).json(newComment);
+router.post('/api/recipecomment', verifyToken, async (req, res) => {
+    const { content, recipeId, userId } = req.body;
+    const newComment = await prisma.recipeComment.create({
+        data: { content, recipeId, userId }
+    });
+    res.json(newComment);
 });
 
-// Get one
-router.get('/api/recipecomment/:id', async (req, res) => {
-  const { id } = req.params;
-  const comment = await prisma.recipeComment.findUnique({ where: { id: Number(id) } });
-  if (!comment) return res.status(404).json({ error: 'Comment not found' });
-  res.json(comment);
+router.get('/api/recipecomment/:id', verifyToken, async (req, res) => {
+    const comment = await prisma.recipeComment.findUnique({
+        where: { id: Number(req.params.id) }
+    });
+    if (!comment) return res.status(404).send('Comment not found');
+    res.json(comment);
 });
 
-// Update
-router.put('/api/recipecomment/:id', async (req, res) => {
-  const { id } = req.params;
-  const { content } = req.body;
-  const updatedComment = await prisma.recipeComment.update({
-    where: { id: Number(id) },
-    data: { content },
-  });
-  res.json(updatedComment);
+router.put('/api/recipecomment/:id', verifyToken, async (req, res) => {
+    const { content } = req.body;
+    const updatedComment = await prisma.recipeComment.update({
+        where: { id: Number(req.params.id) },
+        data: { content }
+    });
+    res.json(updatedComment);
 });
 
-// Delete
-router.delete('/api/recipecomment/:id', async (req, res) => {
-  const { id } = req.params;
-  await prisma.recipeComment.delete({ where: { id: Number(id) } });
-  res.status(204).send();
+router.delete('/api/recipecomment/:id', verifyToken, async (req, res) => {
+    await prisma.recipeComment.delete({
+        where: { id: Number(req.params.id) }
+    });
+    res.status(204).send();
 });
 
 export default router;

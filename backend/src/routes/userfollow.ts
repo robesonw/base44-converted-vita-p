@@ -1,49 +1,35 @@
-// UserFollow CRUD Routes
-import { Router } from 'express';
+import express from 'express';
 import prisma from '../lib/prisma';
 import { verifyToken } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 
-// List
-router.get('/api/userfollow', verifyToken, async (req, res) => {
-    const { filter, sort, limit, offset } = req.query;
-    const follows = await prisma.userFollow.findMany({});
-    res.json(follows);
+router.use(verifyToken);
+
+router.get('/api/userfollow', async (req, res) => {
+  const { filter, sort, limit, offset } = req.query;
+  // Logic to retrieve all UserFollows based on filters, sorting, limit and offset
 });
 
-// Create
-router.post('/api/userfollow', verifyToken, async (req, res) => {
-    const { followerId, followingId } = req.body;
-    const newFollow = await prisma.userFollow.create({
-        data: { followerId, followingId },
-    });
-    res.status(201).json(newFollow);
+router.post('/api/userfollow', async (req, res) => {
+  const { /* user follow fields */ } = req.body;
+  // Logic to create a new UserFollow
 });
 
-// Get One
-router.get('/api/userfollow/:id', verifyToken, async (req, res) => {
-    const { id } = req.params;
-    const follow = await prisma.userFollow.findUnique({ where: { id: Number(id) } });
-    res.json(follow);
+router.get('/api/userfollow/:id', async (req, res) => {
+  const { id } = req.params;
+  // Logic to get a UserFollow by id
 });
 
-// Update
-router.put('/api/userfollow/:id', verifyToken, async (req, res) => {
-    const { id } = req.params;
-    const { followerId, followingId } = req.body;
-    const updatedFollow = await prisma.userFollow.update({
-        where: { id: Number(id) },
-        data: { followerId, followingId },
-    });
-    res.json(updatedFollow);
+router.put('/api/userfollow/:id', async (req, res) => {
+  const { id } = req.params;
+  const { /* updated user follow fields */ } = req.body;
+  // Logic to update a UserFollow by id
 });
 
-// Delete
-router.delete('/api/userfollow/:id', verifyToken, async (req, res) => {
-    const { id } = req.params;
-    await prisma.userFollow.delete({ where: { id: Number(id) } });
-    res.status(204).send();
+router.delete('/api/userfollow/:id', async (req, res) => {
+  const { id } = req.params;
+  // Logic to delete a UserFollow by id
 });
 
 export default router;
