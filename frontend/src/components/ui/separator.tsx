@@ -1,6 +1,5 @@
-import * as SeparatorPrimitive from '@radix-ui/react-separator';
-import { cn } from '@/lib/utils';
+import { Separator as RadixSeparator } from '@radix-ui/react-separator';
 
-export const Separator = ({ className, ...props }) => {
-  return <SeparatorPrimitive.Root className={cn('h-px bg-gray-200', className)} {...props} />;
-};
+export const Separator = ({ className }) => (
+  <RadixSeparator className={`my-2 h-px bg-gray-300 ${className}`} />
+);

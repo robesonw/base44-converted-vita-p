@@ -1,79 +1,90 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
-export default function LabResults() {
-  const [uploadDate, setUploadDate] = useState('');
-  const [notes, setNotes] = useState('');
-  const [file, setFile] = useState(null);
+const LabResults = () => {
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadDate, setUploadDate] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
+  const [file, setFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
-  const { data: labResults = [] } = useQuery(['labResults'], () => apiFetch('GET', '/api/labResults'));
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => await apiFetch('GET', '/api/auth/me'),
+    retry: false,
+  });
 
+  const { data: labResults = [] } = useQuery({
+    queryKey: ['labResults'],
+    queryFn: async () => await apiFetch('GET', '/api/lab-results')
+  });
+  
   const createLabResult = useMutation({
-    mutationFn: (data) => apiFetch('POST', '/api/labResults', data),
+    mutationFn: async (data) => await apiFetch('POST', '/api/lab-results', data),
     onSuccess: () => {
       queryClient.invalidateQueries(['labResults']);
       toast.success('Lab result uploaded successfully!');
-      setUploadDate('');
-      setNotes('');
-      setFile(null);
     },
   });
 
-  const handleFileUpload = (e) => {
-    const selectedFile = e.target.files[0];
-    if (!selectedFile) return;
-    setFile(selectedFile);
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files![0];
+    if (selectedFile) {
+      setFile(selectedFile);
+    }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!file || !uploadDate) {
       toast.error('Please select a file and date');
       return;
     }
 
+    setIsUploading(true);
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_date', uploadDate);
     formData.append('notes', notes);
 
-    await createLabResult.mutateAsync(formData);
+    try {
+      await createLabResult.mutateAsync(formData);
+      setUploadDate('');
+      setNotes('');
+      setFile(null);
+    } catch (error) {
+      toast.error('Upload failed: ' + error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Lab Results</CardTitle>
+        <CardTitle>Upload Lab Results</CardTitle>
       </CardHeader>
       <CardContent>
-        <Label>Upload Date</Label>
-        <Input type="date" value={uploadDate} onChange={(e) => setUploadDate(e.target.value)} />
-
-        <Label>Notes</Label>
-        <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
-
-        <Label>Upload Lab Result File</Label>
-        <Input type="file" onChange={handleFileUpload} />
-
-        <Button onClick={handleSubmit}>Upload</Button>
-
-        <div>
-          <h3>Previous Lab Results</h3>
-          {labResults.map(result => (
-            <div key={result.id}>{result.upload_date}: {result.notes}</div>
-          ))}
-        </div>
+        <form onSubmit={handleSubmit}>
+          <Label htmlFor="uploadDate">Upload Date</Label>
+          <Input type="date" value={uploadDate} onChange={e => setUploadDate(e.target.value)} required />
+          <Label htmlFor="notes">Notes</Label>
+          <Textarea value={notes} onChange={e => setNotes(e.target.value)} />
+          <Label htmlFor="file">Select File</Label>
+          <Input type="file" onChange={handleFileUpload} required />
+          <Button type="submit" disabled={isUploading}>Upload</Button>
+        </form>
       </CardContent>
     </Card>
   );
-}
+};
+
+export default LabResults;

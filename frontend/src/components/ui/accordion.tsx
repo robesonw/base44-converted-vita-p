@@ -1,17 +1,12 @@
-import * as AccordionPrimitive from '@radix-ui/react-accordion';
+import { Accordion as RadixAccordion, AccordionItem, AccordionTrigger, AccordionContent } from '@radix-ui/react-accordion';
 import { ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
-export const Accordion = AccordionPrimitive.Root;
-export const AccordionItem = AccordionPrimitive.Item;
+export const Accordion = ({ children }) => <RadixAccordion>{children}</RadixAccordion>;
 
-export const AccordionTrigger = ({ children }) => {
-  return (
-    <AccordionPrimitive.Trigger className="flex items-center">
-      <ChevronDown className="h-4 w-4 mr-2" />
-      {children}
-    </AccordionPrimitive.Trigger>
-  );
-};
+export { AccordionItem, AccordionTrigger, AccordionContent };
 
-export const AccordionContent = AccordionPrimitive.Content;
+export const AccordionWithIcon = ({ children }) => (
+  <AccordionTrigger>
+    <ChevronDown /> {children}
+  </AccordionTrigger>
+);

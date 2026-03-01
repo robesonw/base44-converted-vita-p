@@ -1,29 +1,15 @@
-# Use Node.js 20 Alpine image for a lightweight container
-FROM node:20-alpine AS build
-
-# Set working directory
+# Use Node.js 20 runtime
+FROM node:20-alpine AS builder
 WORKDIR /app
-
-# Copy package.json and install dependencies
-COPY package.json package-lock.json ./
+COPY package.json yarn.lock ./
 RUN npm install
-
-# Copy source files
-COPY ./src ./src
-
-# Build the project
+COPY . .
 RUN npm run build
 
 # Production image
-FROM node:20-alpine AS production
+FROM node:20-alpine
 WORKDIR /app
-
-COPY --from=build /app/dist ./dist
-COPY package.json .
-RUN npm install --only=production
-
-# Migrate DB
-RUN npm run db:migrate
-
-# Start the app
-CMD ["node", "dist/index.js"]
+COPY --from=builder /app/dist ./
+COPY --from=builder /app/package*.json ./
+RUN npm install --production
+CMD [ "node", "index.js" ]

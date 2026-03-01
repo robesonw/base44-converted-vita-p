@@ -1,6 +1,5 @@
-import * as ProgressPrimitive from '@radix-ui/react-progress';
-import { cn } from '@/lib/utils';
+import { Progress as RadixProgress } from '@radix-ui/react-progress';
 
-export const Progress = ({ value, className }) => {
-  return <ProgressPrimitive.Root value={value} className={cn('relative h-2 bg-gray-300', className)} style={{ width: `${value}%` }} />;
-};
+export const Progress = ({ value, max, className }) => (
+  <RadixProgress value={value} max={max} className={`h-2 rounded bg-primary ${className}`} />
+);

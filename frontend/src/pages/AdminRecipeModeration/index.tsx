@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { apiFetch } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,62 +9,44 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { CheckCircle, XCircle, Eye, Clock, Flame, ChefHat } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
-
-interface User {
-  role: string;
-}
+import { useAuth } from '@/contexts/AuthContext';
+import { apiFetch } from '@/lib/api';
 
 interface Recipe {
-  id: string;
-  name: string;
-  image_url?: string;
-  description: string;
-  created_date: string;
-  status: string;
-  author_name: string;
-  meal_type?: string;
-  cuisine?: string;
-  difficulty?: string;
-  calories?: number;
+    id: string;
+    name: string;
+    description: string;
+    status: string;
+    author_name: string;
+    created_date: string;
+    image_url?: string;
+    meal_type: string;
+    cuisine?: string;
+    difficulty?: string;
+    calories?: number;
 }
 
 export default function AdminRecipeModeration() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [moderationNotes, setModerationNotes] = useState<string>('');
+  const [moderationNotes, setModerationNotes] = useState('');
   const queryClient = useQueryClient();
 
-  const { data: user } = useQuery<User>({
-    queryKey: ['currentUser'],
-    queryFn: () => Promise.resolve({ role: 'admin' }),
-  });
+  const { data: user } = useAuth();
 
-  const { data: recipes = [], isLoading } = useQuery<Recipe[]>({
-    queryKey: ['allSharedRecipes'],
-    queryFn: () => apiFetch('GET', '/api/shared-recipes'),
-  });
+  const { data: recipes = [], isLoading } = useQuery<Recipe[]>(['allSharedRecipes'], () => apiFetch('GET', '/api/shared-recipes'));
 
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status, notes }) => 
+  const updateStatusMutation = useMutation(
+    ({ id, status, notes }: { id: string; status: string; notes: string }) => 
       apiFetch('PUT', `/api/shared-recipes/${id}`, { status, moderation_notes: notes }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['allSharedRecipes'] });
-      toast.success(`Recipe ${variables.status} successfully`);
-      setSelectedRecipe(null);
-      setModerationNotes('');
-
-      // Notify recipe author
-      const recipe = recipes.find(r => r.id === variables.id);
-      if (recipe?.created_by) {
-        apiFetch('POST', '/api/notifications', {
-          recipient_email: recipe.created_by,
-          type: variables.status === 'approved' ? 'recipe_approved' : 'recipe_rejected',
-          title: `Recipe ${variables.status === 'approved' ? 'Approved' : 'Rejected'}`,
-          message: `Your recipe "${recipe.name}" has been ${variables.status}. ${variables.notes || ''}`,
-          actor_name: 'Admin Team',
-        });
-      }
-    },
-  });
+    {
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries(['allSharedRecipes']);
+        toast.success(`Recipe ${variables.status}`);
+        setSelectedRecipe(null);
+        setModerationNotes('');
+      },
+    }
+  );
 
   const handleApprove = (recipe: Recipe) => {
     updateStatusMutation.mutate({
@@ -100,11 +81,7 @@ export default function AdminRecipeModeration() {
       <CardContent className="p-4">
         <div className="flex gap-4">
           {recipe.image_url && (
-            <img
-              src={recipe.image_url}
-              alt={recipe.name}
-              className="w-24 h-24 object-cover rounded-lg"
-            />
+            <img src={recipe.image_url} alt={recipe.name} className="w-24 h-24 object-cover rounded-lg" />
           )}
           <div className="flex-1">
             <div className="flex items-start justify-between mb-2">
@@ -114,21 +91,17 @@ export default function AdminRecipeModeration() {
                   by {recipe.author_name} • {formatDistanceToNow(new Date(recipe.created_date), { addSuffix: true })}
                 </p>
               </div>
-              <Badge
-                className={
-                  recipe.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                  recipe.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                  'bg-rose-100 text-rose-700'
-                }
-              >
+              <Badge className={
+                recipe.status === 'pending' ? 'bg-amber-100 text-amber-700' : 
+                recipe.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 
+                'bg-rose-100 text-rose-700'
+              }>
                 {recipe.status}
               </Badge>
             </div>
             <p className="text-sm text-slate-600 mb-2 line-clamp-2">{recipe.description}</p>
             <div className="flex items-center gap-2 flex-wrap mb-2">
-              <Badge variant="outline" className="capitalize text-xs">
-                {recipe.meal_type}
-              </Badge>
+              <Badge variant="outline" className="capitalize text-xs">{recipe.meal_type}</Badge>
               {recipe.cuisine && <Badge variant="secondary" className="text-xs">{recipe.cuisine}</Badge>}
               {recipe.difficulty && (
                 <Badge variant="outline" className="text-xs">
@@ -144,32 +117,17 @@ export default function AdminRecipeModeration() {
               )}
             </div>
             <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setSelectedRecipe(recipe)}
-              >
+              <Button size="sm" variant="outline" onClick={() => setSelectedRecipe(recipe)}>
                 <Eye className="w-3 h-3 mr-1" />
                 Review
               </Button>
               {recipe.status === 'pending' && (
-                <>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setSelectedRecipe(recipe);
-                      setTimeout(() => handleApprove(recipe), 100);
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-700"
-                  >
+                <> 
+                  <Button size="sm" onClick={() => handleApprove(recipe)} className="bg-emerald-600 hover:bg-emerald-700">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     Approve
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => setSelectedRecipe(recipe)}
-                    variant="destructive"
-                  >
+                  <Button size="sm" onClick={() => setSelectedRecipe(recipe)} variant="destructive">
                     <XCircle className="w-3 h-3 mr-1" />
                     Reject
                   </Button>
@@ -226,35 +184,34 @@ export default function AdminRecipeModeration() {
         </Card>
       </div>
 
-      {/* Recipe List */}
-      <Tabs value={selectedRecipe ? 'details' : 'all'}>  
-        <TabsList>
-          <TabsTrigger value="all">All Recipes</TabsTrigger>
-          {selectedRecipe && <TabsTrigger value="details">Recipe Details</TabsTrigger>}
-        </TabsList>
-        <TabsContent value="all">
-          {recipes.map(recipe => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
-          ))}
-        </TabsContent>
-        <TabsContent value="details">
-          <Dialog open={!!selectedRecipe} onOpenChange={() => setSelectedRecipe(null)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{selectedRecipe?.name}</DialogTitle>
-              </DialogHeader>
-              <p>{selectedRecipe?.description}</p>
-              <Textarea
-                placeholder="Moderation notes..."
-                value={moderationNotes}
-                onChange={(e) => setModerationNotes(e.target.value)}
-              />
-              <Button onClick={() => handleApprove(selectedRecipe)}>Approve</Button>
-              <Button onClick={() => handleReject(selectedRecipe)}>Reject</Button>
-            </DialogContent>
-          </Dialog>
-        </TabsContent>
-      </Tabs>
+      {/* Recipe Cards */}
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">Loading recipes...</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {recipes.map(recipe => (<RecipeCard key={recipe.id} recipe={recipe} />))}
+        </div>
+      )}
+
+      {/* Dialog for moderation notes */}
+      <Dialog open={!!selectedRecipe} onOpenChange={(open) => { if (!open) setSelectedRecipe(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Moderate Recipe</DialogTitle>
+          </DialogHeader>
+          {selectedRecipe && (
+            <div>
+              <h3>{selectedRecipe.name}</h3>
+              <p>{selectedRecipe.description}</p>
+              <Textarea value={moderationNotes} onChange={(e) => setModerationNotes(e.target.value)} placeholder="Enter moderation notes" />
+              <div className="flex gap-2 mt-4">
+                <Button onClick={() => handleApprove(selectedRecipe)}>Approve</Button>
+                <Button variant="destructive" onClick={() => handleReject(selectedRecipe)}>Reject</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

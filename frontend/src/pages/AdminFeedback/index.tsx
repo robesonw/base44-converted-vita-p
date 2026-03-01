@@ -1,64 +1,51 @@
 import React, { useState } from 'react';
-import { apiFetch } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  MessageSquare, 
-  Star, 
-  CheckCircle2, 
-  Clock, 
-  TrendingUp,
-  Bug,
-  Lightbulb,
-  ThumbsUp
-} from 'lucide-react';
+import { MessageSquare, Star, CheckCircle2, Clock, TrendingUp, Bug, Lightbulb, ThumbsUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 
-interface Feedback {  
-  id: string;  
-  feedback_type: string;  
-  status: string;  
-  user_name: string;  
-  user_email: string;  
-  page: string;  
-  created_date: string;  
-  rating?: number;
+interface Feedback {
+    id: string;
+    feedback_type: string;
+    status: string;
+    user_name: string;
+    user_email: string;
+    page: string;
+    created_date: string;
+    rating?: number;
 }
 
 export default function AdminFeedback() {
-  const [activeTab, setActiveTab] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'new' | 'reviewed' | 'resolved'>('all');
   const queryClient = useQueryClient();
 
-  const { data: feedbacks = [], isLoading } = useQuery<Feedback[]>({
-    queryKey: ['feedbacks'],
-    queryFn: () => apiFetch('GET', '/api/feedbacks'),
-  });
+  const { data: feedbacks = [], isLoading } = useQuery<Feedback[]>(['feedbacks'], () => apiFetch('GET', '/api/feedbacks'));
 
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      apiFetch('PUT', `/api/feedbacks/${id}`, { status }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['feedbacks'] });
-      toast.success('Status updated');
-    },
-  });
+  const updateStatusMutation = useMutation(
+    ({ id, status }: { id: string; status: string }) => apiFetch('PUT', `/api/feedbacks/${id}`, { status }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['feedbacks']);
+        toast.success('Status updated');
+      },
+    }
+  );
 
   const stats = {
     total: feedbacks.length,
     new: feedbacks.filter(f => f.status === 'new').length,
     reviewed: feedbacks.filter(f => f.status === 'reviewed').length,
     resolved: feedbacks.filter(f => f.status === 'resolved').length,
-    avgRating: feedbacks.length > 0 
+    avgRating: feedbacks.filter(f => f.rating).length > 0
       ? (feedbacks.reduce((sum, f) => sum + (f.rating || 0), 0) / feedbacks.filter(f => f.rating).length).toFixed(1)
       : 0
   };
 
-  const filteredFeedbacks = activeTab === 'all' 
-    ? feedbacks 
-    : feedbacks.filter(f => f.status === activeTab);
+  const filteredFeedbacks = activeTab === 'all' ? feedbacks : feedbacks.filter(f => f.status === activeTab);
 
   const getTypeIcon = (type: string) => {
     switch(type) {
@@ -95,9 +82,7 @@ export default function AdminFeedback() {
         <Card className="border-slate-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-indigo-600" />
-              </div>
+              <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center"> <MessageSquare className="w-5 h-5 text-indigo-600" /> </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
                 <p className="text-xs text-slate-500">Total</p>
@@ -109,9 +94,7 @@ export default function AdminFeedback() {
         <Card className="border-slate-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-blue-600" />
-              </div>
+              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center"> <Clock className="w-5 h-5 text-blue-600" /> </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{stats.new}</p>
                 <p className="text-xs text-slate-500">New</p>
@@ -123,9 +106,7 @@ export default function AdminFeedback() {
         <Card className="border-slate-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-yellow-600" />
-              </div>
+              <div className="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center"> <TrendingUp className="w-5 h-5 text-yellow-600" /> </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{stats.reviewed}</p>
                 <p className="text-xs text-slate-500">Reviewed</p>
@@ -137,9 +118,7 @@ export default function AdminFeedback() {
         <Card className="border-slate-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-              </div>
+              <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center"> <CheckCircle2 className="w-5 h-5 text-green-600" /> </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{stats.resolved}</p>
                 <p className="text-xs text-slate-500">Resolved</p>
@@ -151,9 +130,7 @@ export default function AdminFeedback() {
         <Card className="border-slate-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                <Star className="w-5 h-5 text-amber-600" />
-              </div>
+              <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center"> <Star className="w-5 h-5 text-amber-600" /> </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{stats.avgRating}</p>
                 <p className="text-xs text-slate-500">Avg Rating</p>
@@ -181,7 +158,7 @@ export default function AdminFeedback() {
               </CardContent>
             </Card>
           ) : (
-            filteredFeedbacks.map(feedback => (
+            filteredFeedbacks.map((feedback) => (
               <Card key={feedback.id} className="border-slate-200">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -189,26 +166,14 @@ export default function AdminFeedback() {
                       {getTypeIcon(feedback.feedback_type)}
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <CardTitle className="text-base capitalize">
-                            {feedback.feedback_type.replace('_', ' ')}
-                          </CardTitle>
+                          <CardTitle className="text-base capitalize">{feedback.feedback_type.replace('_', ' ')}</CardTitle>
                           {getStatusBadge(feedback.status)}
                         </div>
-                        <p className="text-sm text-slate-500">
-                          {feedback.user_name} • {feedback.user_email} • {feedback.page}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1">
-                          {new Date(feedback.created_date).toLocaleString()}
-                        </p>
+                        <p className="text-sm text-slate-500">{feedback.user_name} • {feedback.user_email} • {feedback.page}</p>
+                        <p className="text-xs text-slate-400 mt-1">{new Date(feedback.created_date).toLocaleString()}</p>
                       </div>
                     </div>
-                    {feedback.rating && (
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className={`w-4 h-4 ${feedback.rating > i ? 'text-yellow-500' : 'text-gray-300'}`} />
-                        ))}
-                      </div>
-                    )}
+                    {feedback.rating && <div className="flex items-center gap-1">{[...Array(5)].map((_, i) => (<Star key={i} className={`w-4 h-4 ${feedback.rating > i ? 'text-yellow-500' : 'text-gray-300'}`} />))}</div>}
                   </div>
                 </CardHeader>
               </Card>

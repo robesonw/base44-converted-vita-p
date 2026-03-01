@@ -1,18 +1,26 @@
-# Database Migration Steps
+# Migration Steps
 
-1. Install required packages:
+This file guides you through the steps to set up your Prisma migrations.
+
+## Steps to Run Migrations
+1. Install the required dependencies:
    ```bash
    npm install
    ```
-2. Generate Prisma client:
+
+2. Generate the Prisma Client:
    ```bash
    npx prisma generate
    ```
-3. Create migration:
+
+3. Run the migration to set up the database:
    ```bash
    npx prisma migrate dev --name init
    ```
-4. Seed the database:
+
+4. Seed the database (optional):
    ```bash
    npx prisma db seed
    ```
+
+Make sure your .env file contains the DATABASE_URL to connect with your PostgreSQL database.

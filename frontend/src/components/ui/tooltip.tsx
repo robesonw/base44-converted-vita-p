@@ -1,6 +1,5 @@
-import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { cn } from '@/lib/utils';
+import { Tooltip as RadixTooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@radix-ui/react-tooltip';
 
-export const Tooltip = TooltipPrimitive.Provider;
-export const TooltipTrigger = TooltipPrimitive.Trigger;
-export const TooltipContent = TooltipPrimitive.Content;
+export { TooltipProvider, TooltipTrigger, TooltipContent };
+
+export const Tooltip = ({ children }) => <RadixTooltip>{children}</RadixTooltip>;

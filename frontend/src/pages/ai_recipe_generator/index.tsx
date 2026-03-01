@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { invokeAI } from '@/lib/ai';
+import { useAuth } from '@/contexts/AuthContext';
+import { motion } from 'framer-motion';
 
 const cuisineTypes = [
   'Italian', 'Mexican', 'Chinese', 'Japanese', 'Indian', 'Thai', 'Mediterranean',
@@ -22,15 +24,27 @@ const dietaryPreferences = [
 ];
 
 const difficultyLevels = ['Easy', 'Medium', 'Hard'];
-
 const mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert'];
+
+type Recipe = {
+  name: string;
+  description: string;
+  ingredients: Array<{ item: string; quantity: string; }>; 
+  instructions: string[];
+  nutrition: { calories: number; protein: number; carbs: number; fat: number; };
+  prepTime: string;
+  cookTime: string;
+  tips: string;
+  healthBenefits: string;
+  imageUrl?: string;
+};
 
 export default function AIRecipeGenerator() {
   const [generating, setGenerating] = useState(false);
-  const [generatedRecipe, setGeneratedRecipe] = useState(null);
+  const [generatedRecipe, setGeneratedRecipe] = useState<Recipe | null>(null);
   const [savingImage, setSavingImage] = useState(false);
   const queryClient = useQueryClient();
-  
+
   const [form, setForm] = useState({
     recipeName: '',
     mealType: 'Dinner',
@@ -64,7 +78,6 @@ export default function AIRecipeGenerator() {
         dietary: form.dietary,
         servings: form.servings
       });
-      
       toast.success('Recipe generated!');
     } catch (error) {
       toast.error('Failed to generate recipe');
@@ -76,13 +89,11 @@ export default function AIRecipeGenerator() {
 
   const generateRecipeImage = async () => {
     if (!generatedRecipe) return;
-    
     setSavingImage(true);
     try {
       const result = await invokeAI({
         prompt: `Professional food photography of ${generatedRecipe.name}, ${form.cuisine} cuisine, appetizing presentation, natural lighting, high quality, restaurant style plating`
       });
-      
       if (result?.url) {
         setGeneratedRecipe({ ...generatedRecipe, imageUrl: result.url });
         toast.success('Image generated!');
@@ -96,41 +107,31 @@ export default function AIRecipeGenerator() {
 
   const saveRecipe = async () => {
     if (!generatedRecipe) return;
-    
     const saveButton = document.querySelector('[data-save-recipe]');
     if (saveButton) saveButton.disabled = true;
-    
     try {
       const ingredientNames = generatedRecipe.ingredients?.map(ing => `${ing.quantity} ${ing.item}`) || [];
       let groceryList = {};
       let totalCost = 0;
-      
+
       if (ingredientNames.length > 0) {
         toast.loading('Estimating grocery costs...');
-        
-        try {
-          const priceData = await invokeAI({
-            prompt: `For these ingredients: ${ingredientNames.join(', ')}. Provide current average grocery prices in USD per typical package/unit from major US grocery stores. Categorize them into: Proteins, Vegetables, Fruits, Grains, Dairy/Alternatives, Spices/Condiments, Other.`,
-            add_context_from_internet: true,
-          });
-          
-          if (priceData?.categories) {
-            groceryList = priceData.categories;
-            Object.values(groceryList).forEach(items => {
-              items.forEach(item => {
-                totalCost += (item.price || 0) * (item.quantity || 1);
-              });
+        const priceData = await invokeAI({
+          prompt: `For these ingredients: ${ingredientNames.join(', ')}. Provide current average grocery prices in USD per typical package/unit from major US grocery stores. Categorize them into: Proteins, Vegetables, Fruits, Grains, Dairy/Alternatives, Spices/Condiments, Other.`,
+          add_context_from_internet: true
+        });
+
+        if (priceData?.categories) {
+          groceryList = priceData.categories;
+          Object.values(groceryList).forEach(items => {
+            items.forEach(item => {
+              totalCost += (item.price || 0) * (item.quantity || 1);
             });
-          }
-        } catch (error) {
-          console.error('Failed to fetch prices:', error);
+          });
         }
       }
-      
       const cuisineName = form.cuisine === 'Other' ? form.customCuisine : form.cuisine;
-      
-      // Save to FavoriteMeal with all details
-      await apiFetch('POST', '/api/favoriteMeals', {
+      await apiFetch('POST', '/api/favorite-meals', {
         name: generatedRecipe.name,
         meal_type: form.mealType.toLowerCase(),
         calories: `${generatedRecipe.nutrition?.calories || 0} kcal`,
@@ -142,11 +143,8 @@ export default function AIRecipeGenerator() {
         prepTime: generatedRecipe.prepTime,
         prepSteps: generatedRecipe.instructions || [],
         difficulty: form.difficulty,
-        groceryList,
-        totalCost
       });
-
-      toast.success('Recipe saved successfully!');
+      toast.success('Recipe saved!');
     } catch (error) {
       toast.error('Failed to save recipe');
       console.error(error);
@@ -156,51 +154,98 @@ export default function AIRecipeGenerator() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>AI Recipe Generator</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Label>Name</Label>
-        <Input value={form.recipeName} onChange={e => setForm({ ...form, recipeName: e.target.value })} />
-        <Separator />
-        <Label>Meal Type</Label>
-        <Select onValueChange={val => setForm({ ...form, mealType: val })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select Meal Type" />
-          </SelectTrigger>
-          <SelectContent>{mealTypes.map(item => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
-        </Select>
-        <Separator />
-        <Label>Cuisine Type</Label>
-        <Select onValueChange={val => setForm({ ...form, cuisine: val })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select Cuisine" />
-          </SelectTrigger>
-          <SelectContent>{cuisineTypes.map(item => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
-        </Select>
-        <Separator />
-        <Label>Dietary Preference</Label>
-        <Select onValueChange={val => setForm({ ...form, dietary: val })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select Dietary Preference" />
-          </SelectTrigger>
-          <SelectContent>{dietaryPreferences.map(item => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
-        </Select>
-        <Separator />
-        <Label>Ingredients</Label>
-        <Textarea value={form.ingredients} onChange={e => setForm({ ...form, ingredients: e.target.value })} />
-        <Separator />
-        <Button onClick={handleGenerate} disabled={generating}>{generating ? 'Generating...' : 'Generate Recipe'}</Button>
-        {generatedRecipe && (
-          <div>
-            <h2>Generated Recipe:</h2>
-            {/* Display generated recipe here */}
-            <Button onClick={saveRecipe} data-save-recipe>Save Recipe</Button>
-            <Button onClick={generateRecipeImage} disabled={savingImage}>{savingImage ? 'Saving Image...' : 'Generate Image'}</Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="p-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Recipe Generator</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Label htmlFor="recipeName">Recipe Name</Label>
+          <Input id="recipeName" value={form.recipeName} onChange={(e) => setForm({ ...form, recipeName: e.target.value })} />
+
+          <Label htmlFor="mealType">Meal Type</Label>
+          <Select onValueChange={(val) => setForm({ ...form, mealType: val })} >
+            <SelectTrigger>
+              <SelectValue placeholder="Select meal type" />
+            </SelectTrigger>
+            <SelectContent>
+              {mealTypes.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}
+            </SelectContent>
+          </Select>
+
+          <Label htmlFor="cuisine">Cuisine</Label>
+          <Select onValueChange={(val) => setForm({ ...form, cuisine: val })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select cuisine type" />
+            </SelectTrigger>
+            <SelectContent>
+              {cuisineTypes.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}
+            </SelectContent>
+          </Select>
+
+          <Label htmlFor="dietary">Dietary Preference</Label>
+          <Select onValueChange={(val) => setForm({ ...form, dietary: val })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select dietary preference" />
+            </SelectTrigger>
+            <SelectContent>
+              {dietaryPreferences.map((pref) => (<SelectItem key={pref} value={pref}>{pref}</SelectItem>))}
+            </SelectContent>
+          </Select>
+
+          <Label htmlFor="difficulty">Difficulty</Label>
+          <Select onValueChange={(val) => setForm({ ...form, difficulty: val })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select difficulty level" />
+            </SelectTrigger>
+            <SelectContent>
+              {difficultyLevels.map((level) => (<SelectItem key={level} value={level}>{level}</SelectItem>))}
+            </SelectContent>
+          </Select>
+
+          <Label htmlFor="ingredients">Ingredients</Label>
+          <Textarea id="ingredients" value={form.ingredients} onChange={(e) => setForm({ ...form, ingredients: e.target.value })} />
+
+          <Label htmlFor="servings">Servings</Label>
+          <Input type="number" id="servings" value={form.servings} onChange={(e) => setForm({ ...form, servings: +e.target.value })} />
+
+          <Label htmlFor="cookTime">Cook Time (minutes)</Label>
+          <Input type="number" id="cookTime" value={form.cookTime} onChange={(e) => setForm({ ...form, cookTime: +e.target.value })} />
+
+          <Label htmlFor="additionalNotes">Additional Notes</Label>
+          <Textarea id="additionalNotes" value={form.additionalNotes} onChange={(e) => setForm({ ...form, additionalNotes: e.target.value })} />
+
+          <Button onClick={handleGenerate} disabled={generating}>{generating ? 'Generating...' : 'Generate Recipe'}</Button>
+          <Button onClick={generateRecipeImage} disabled={!generatedRecipe || savingImage}>{savingImage ? 'Generating Image...' : 'Generate Recipe Image'}</Button>
+          <Button data-save-recipe onClick={saveRecipe} disabled={!generatedRecipe}>Save Recipe</Button>
+        </CardContent>
+      </Card>
+      {generatedRecipe && (
+        <div className="mt-4">
+          <h2 className="text-lg font-bold">Generated Recipe</h2>
+          <Card>
+            <CardContent>
+              <h3 className="font-bold text-xl">{generatedRecipe.name}</h3>
+              <div>{generatedRecipe.description}</div>
+              <Separator />
+              <h4 className="font-semibold">Ingredients:</h4>
+              <ul className="list-inside list-disc">
+                {generatedRecipe.ingredients.map((ingredient, index) => (<li key={index}>{ingredient.quantity} {ingredient.item}</li>))}
+              </ul>
+              <h4 className="font-semibold">Instructions:</h4>
+              <ol className="list-inside list-decimal">
+                {generatedRecipe.instructions.map((instruction, index) => (<li key={index}>{instruction}</li>))}
+              </ol>
+              <p className="font-semibold">Nutrition (per serving):</p>
+              <p>Calories: {generatedRecipe.nutrition.calories}</p>
+              <p>Protein: {generatedRecipe.nutrition.protein}</p>
+              <p>Carbs: {generatedRecipe.nutrition.carbs}</p>
+              <p>Fat: {generatedRecipe.nutrition.fat}</p>
+              {generatedRecipe.imageUrl && <img src={generatedRecipe.imageUrl} alt={`Image of ${generatedRecipe.name}`} />}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
   );
 }

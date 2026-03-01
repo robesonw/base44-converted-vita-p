@@ -1,7 +1,7 @@
-import * as AvatarPrimitive from '@radix-ui/react-avatar';
-import { cn } from '@/lib/utils';
+import { Avatar as RadixAvatar, AvatarImage, AvatarFallback } from '@radix-ui/react-avatar';
 
-export const Avatar = ({ className, ...props }) => <AvatarPrimitive.Root className={cn('overflow-hidden rounded-full', className)} {...props} />;
+export const Avatar = ({ className, children }) => (
+  <RadixAvatar className={`inline-flex items-center ${className}`}>{children}</RadixAvatar>
+);
 
-export const AvatarImage = AvatarPrimitive.Image;
-export const AvatarFallback = AvatarPrimitive.Fallback;
+export { AvatarImage, AvatarFallback };

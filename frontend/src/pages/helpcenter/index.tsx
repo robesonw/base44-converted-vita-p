@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,27 +8,26 @@ import { Sparkles, Calendar, ChefHat, ShoppingCart } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
-type Guide = {
+// Define the types for guides and categories
+interface Guide {  
   title: string;
   description: string;
   steps: string[];
   tips?: string[];
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-};
+  action?: { label: string; onClick: () => void; };
+}
 
-type Category = {
+interface Category {  
   id: string;
   title: string;
-  icon: React.ElementType;
+  icon: React.FC;
   color: string;
   guides: Guide[];
-};
+}
 
 const HelpCenter: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
+
   const categories: Category[] = [
     {
       id: 'getting_started',
@@ -40,19 +38,36 @@ const HelpCenter: React.FC = () => {
         {
           title: 'Setting Up Your Profile',
           description: 'Complete your profile to get personalized recommendations',
-          steps: [...], // detailed steps here
-          tips: [...], // relevant tips here
+          steps: [
+            'Click on "My Profile" in the sidebar',
+            'Fill in your personal information (age, gender, height, weight)',
+            'Select your primary health goal (e.g., Liver Health, Weight Loss)',
+            'Add any allergens you need to avoid',
+            'Set your dietary restrictions and food preferences',
+            'Choose your cooking skill level and available time',
+            'Save your preferences - these will be used for all meal plan generations!'
+          ],
+          tips: [
+            'Be specific about allergens - the AI will strictly avoid them',
+            'Update your preferences as your goals change',
+            'The more details you provide, the better your recommendations',
+          ],
         },
         {
           title: 'Taking the Interactive Tour',
           description: 'Learn the platform with our guided tour',
-          steps: [...], // detailed steps here
-          action: {  
-            label: 'Restart Tour',  
-            onClick: () => {  
-              localStorage.removeItem('vitaplate_tour_completed');  
-              window.location.href = '/Dashboard';  
-            },  
+          steps: [
+            'The tour starts automatically for new users',
+            'Follow the highlighted tooltips to learn about each feature',
+            'You can skip the tour anytime by clicking "Skip Tour"',
+            'To restart the tour, click the button below:',
+          ],
+          action: {
+            label: 'Restart Tour',
+            onClick: () => {
+              localStorage.removeItem('vitaplate_tour_completed');
+              window.location.href = '/Dashboard';
+            },
           },
         },
       ],
@@ -62,64 +77,114 @@ const HelpCenter: React.FC = () => {
       title: 'Meal Planning',
       icon: Calendar,
       color: 'from-emerald-500 to-teal-500',
-      guides: [...], // complete guides for meal planning
+      guides: [
+        {
+          title: 'Generating Your First Meal Plan',
+          description: 'Create a personalized meal plan in minutes',
+          steps: [
+            'Go to "Health Diet Hub" from the sidebar',
+            'Your profile preferences will auto-populate (if you set them)',
+            'Select your health goal and cultural cuisine style',
+            'Choose plan duration (1 day, 3 days, or 7 days)',
+            'Set number of people and budget',
+            'Add any specific foods you like or want to avoid',
+            'Click "Generate Meal Plan" and wait ~30 seconds',
+            'Review your plan with complete recipes and nutrition info',
+            'Save the plan to access it later from "Meal Plans"',
+          ],
+          tips: [
+            'Use cultural styles for authentic cuisine experiences',
+            'Budget estimates are real-time from grocery stores',
+            'Generated images may take a moment - you can regenerate them',
+          ],
+        },
+      ],
     },
     {
       id: 'recipes',
       title: 'Recipes & AI Generation',
       icon: ChefHat,
       color: 'from-orange-500 to-red-500',
-      guides: [...], // complete guides for recipes
+      guides: [
+        {
+          title: 'Using the AI Recipe Generator',
+          description: 'Create custom recipes with AI',
+          steps: [
+            'Go to "AI Recipe Generator" from the sidebar',
+            'Enter available ingredients you want to use',
+            'Select cuisine type, dietary preferences, and meal type',
+            'Choose difficulty level and cooking time',
+            'Add any health focus or special requirements',
+            'Click "Generate Recipe" and wait for AI to create it',
+          ],
+          tips: [
+            'Be creative with ingredient combinations',
+            'AI adapts recipes to your allergens automatically',
+          ],
+        },
+      ],
     },
     {
       id: 'grocery',
       title: 'Grocery Lists',
       icon: ShoppingCart,
       color: 'from-blue-500 to-cyan-500',
-      guides: [...], // complete guides for grocery lists
+      guides: [
+        {
+          title: 'Understanding Grocery Lists',
+          description: 'Automatically generated shopping lists',
+          steps: [
+            'Every meal plan generates a grocery list automatically',
+            'Items are categorized (Proteins, Vegetables, Grains, etc.)',
+            'Prices are fetched from major US grocery stores in real-time',
+          ],
+        },
+      ],
     },
   ];
 
   return (
-    <div className="p-4 bg-white dark:bg-gray-800">
-      <Input 
-        placeholder="Search..." 
-        value={searchQuery} 
-        onChange={(e) => setSearchQuery(e.target.value)} 
-        className="mb-4"
+    <div className="p-4">
+      <Input
+        type="text"
+        placeholder="Search Help Center..."
+        value={searchQuery}
+        onValueChange={val => setSearchQuery(val)}
       />
       <Tabs>
         <TabsList>
-          {categories.map((category) => (
-            <TabsTrigger key={category.id} value={category.id} >{category.title}</TabsTrigger>
+          {categories.map(category => (
+            <TabsTrigger key={category.id} value={category.id}>{category.title}</TabsTrigger>
           ))}
         </TabsList>
-        {categories.map((category) => (
-          <TabsContent key={category.id} value={category.id}>
-            <Accordion type="single" collapsible>
-              {category.guides.map((guide, idx) => (
-                <AccordionItem key={idx} value={`guide-${idx}`}>   
-                  <AccordionTrigger>{guide.title}</AccordionTrigger>
-                  <AccordionContent>
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>{guide.title}</CardTitle>
-                        <CardDescription>{guide.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ol>
-                          {guide.steps.map((step, index) => (
-                            <li key={index}>{step}</li>
-                          ))}
-                        </ol>
-                        {guide.tips && <Badge>{guide.tips.join(', ')}</Badge>} 
-                        {guide.action && <Button onClick={guide.action.onClick}>{guide.action.label}</Button>}
-                      </CardContent>
-                    </Card>
-                  </AccordionContent>
-                </AccordionItem>
+        {categories.map(category => (
+          <TabsContent key={category.id} value={category.id} className="mt-4">
+            <div className={category.color + " p-4 rounded-md"}>
+              {category.guides.map((guide, index) => (
+                <Accordion key={index} type="single" collapsible>
+                  <AccordionItem value={guide.title}>
+                    <AccordionTrigger>{guide.title}</AccordionTrigger>
+                    <AccordionContent>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>{guide.title}</CardTitle>
+                          <CardDescription>{guide.description}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <ol>
+                            {guide.steps.map((step, stepIndex) => (
+                              <li key={stepIndex}>{step}</li>
+                            ))}
+                          </ol>
+                          {guide.tips && <p><strong>Tips:</strong> {guide.tips.join(', ')}</p>}
+                        </CardContent>
+                      </Card>
+                      {guide.action && <Button onClick={guide.action.onClick}>{guide.action.label}</Button>}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               ))}
-            </Accordion>
+            </div>
           </TabsContent>
         ))}
       </Tabs>

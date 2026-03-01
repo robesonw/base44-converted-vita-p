@@ -1,3 +1,5 @@
+// This is the schema.prisma file
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,12 +15,277 @@ enum Role {
 }
 
 model User {
-  id          String   @id @default(cuid()) @map("id")
-  email       String   @unique @map("email")
-  name        String?  @map("name")
-  passwordHash String   @map("password_hash")
-  role        Role     @default(USER) @map("role")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String?
+  passwordHash    String
+  role            Role     @default(USER)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   @@map("users")
+}
+
+model FavoriteMeal {
+  id                     String   @id @default(cuid())
+  name                   String
+  meal_type              String
+  calories               String
+  protein                Float?
+  carbs                  Float?
+  fat                    Float?
+  nutrients              String
+  prepTip                String
+  prepTime               String
+  prepSteps              String[]
+  difficulty             String
+  equipment              String[]
+  healthBenefit          String
+  imageUrl               String
+  cuisine                String
+  cooking_time           String
+  tags                   String[]
+  source_type            String
+  source_meal_plan_id    String?
+  source_meal_plan_name  String?
+  source_recipe_id       String?
+  ingredients            String[]
+  grocery_list           Json?
+  estimated_cost         Float?
+  @@map("favorite_meals")
+}
+
+model Feedback {
+  id                String   @id @default(cuid())
+  user_name         String
+  user_email        String
+  page              String
+  rating            Int?
+  feedback_type     String
+  message           String
+  status            String? @default("new")
+  @@map("feedback")
+}
+
+model ForumComment {
+  id            String   @id @default(cuid())
+  post_id       String
+  content       String
+  likes_count   Int      @default(0)
+  author_name   String
+  reactions     Json?
+  @@map("forum_comments")
+}
+
+model ForumPost {
+  id              String   @id @default(cuid())
+  title           String
+  content         String
+  category        String    @default("general")
+  tags            String[]
+  likes_count     Int       @default(0)
+  views_count     Int       @default(0)
+  comments_count   Int       @default(0)
+  is_pinned        Boolean    @default(false)
+  author_name     String
+  @@map("forum_posts")
+}
+
+model GroceryList {
+  id            String   @id @default(cuid())
+  name          String
+  items         Json?
+  total_cost    Float?
+  notes         String?
+  @@map("grocery_lists")
+}
+
+model LabResult {
+  id          String   @id @default(cuid())
+  upload_date String
+  file_url    String
+  biomarkers  Json?
+  notes       String?
+  @@map("lab_results")
+}
+
+model MealPlan {
+  id              String   @id @default(cuid())
+  name            String
+  diet_type       String?
+  cultural_style   String?
+  life_stage      String?
+  days            Json?
+  @@map("meal_plans")
+}
+
+model Notification {
+  id                String   @id @default(cuid())
+  recipient_email   String
+  type              String
+  title             String
+  message           String
+  link              String?
+  is_read           Boolean   @default(false)
+  actor_name        String?
+  @@map("notifications")
+}
+
+model NutritionGoal {
+  id                   String   @id @default(cuid())
+  goal_type            String    @default("daily")
+  target_calories      Float
+  target_protein       Float
+  target_carbs         Float
+  target_fat           Float
+  target_micronutrients Json?
+  is_active            Boolean   @default(true)
+  @@map("nutrition_goals")
+}
+
+model NutritionLog {
+  id                String   @id @default(cuid())
+  recipe_name       String
+  meal_type         String
+  log_date          String
+  calories          Float
+  protein           Float
+  carbs             Float
+  fat               Float
+  micronutrients     Json?
+  servings          Int       @default(1)
+  food_source       String    @default("manual")
+  food_id          String?
+  @@map("nutrition_logs")
+}
+
+model ProgressComment {
+  id            String   @id @default(cuid())
+  progress_id   String
+  comment       String
+  author_name   String
+  @@map("progress_comments")
+}
+
+model RecipeComment {
+  id            String   @id @default(cuid())
+  recipe_id     String
+  comment       String
+  author_name   String
+  @@map("recipe_comments")
+}
+
+model Review {
+  id              String   @id @default(cuid())
+  target_id       String
+  target_type     String
+  rating          Int
+  comment         String?
+  helpful_count     Int      @default(0)
+  author_name     String
+  @@map("reviews")
+}
+
+model SharedMealPlan {
+  id                     String   @id @default(cuid())
+  original_plan_id       String?
+  title                   String
+  description             String?
+  plan_data               Json
+  diet_type               String?
+  cultural_style          String?
+  tags                    String[]
+  views_count             Int      @default(0)
+  likes_count             Int      @default(0)
+  saves_count             Int      @default(0)
+  average_rating          Float?
+  author_name             String
+  @@map("shared_meal_plans")
+}
+
+model SharedProgress {
+  id                   String   @id @default(cuid())
+  title                String
+  description          String?
+  progress_type        String
+  stats                Json?
+  date_range           Json?
+  likes_count          Int      @default(0)
+  comments_count       Int      @default(0)
+  author_name          String
+  @@map("shared_progress")
+}
+
+model SharedRecipe {
+  id              String   @id @default(cuid())
+  name            String
+  meal_type       String
+  description     String
+  meal_data       Json
+  calories        String
+  protein         Float?
+  carbs           Float?
+  fat             Float?
+  image_url       String?
+  tags            String[]
+  views_count     Int       @default(0)
+  likes_count     Int       @default(0)
+  saves_count     Int       @default(0)
+  average_rating   Float?
+  author_name     String
+  status          String    @default("pending")
+  moderation_notes String?
+  cuisine         String?
+  difficulty      String?
+  prep_time       String?
+  cooking_time    String?
+  servings        Int?
+  ingredients     String[]
+  prep_steps      String[]
+  @@map("shared_recipes")
+}
+
+model UserFollow {
+  id                  String   @id @default(cuid())
+  following_user_email String
+  following_user_name  String
+  @@map("user_follows")
+}
+
+model UserInteraction {
+  id             String   @id @default(cuid())
+  target_id      String
+  target_type    String
+  interaction_type String
+  @@map("user_interactions")
+}
+
+model UserPreferences {
+  id                     String   @id @default(cuid())
+  age                    Int?
+  gender                 String?
+  height                 Float?
+  weight                 Float?
+  health_goal            String?
+  dietary_restrictions   String?
+  foods_liked           String?
+  foods_avoided         String?
+  allergens             String[]
+  cuisine_preferences    String[]
+  cooking_time          String?
+  skill_level           String?
+  num_people            Int?    @default(1)
+  weekly_budget         Float?  @default(100)
+  @@map("user_preferences")
+}
+
+model UserSettings {
+  id                              String   @id @default(cuid())
+  email_notifications               Boolean   @default(true)
+  recipe_approved_notifications      Boolean   @default(true)
+  recipe_rejected_notifications       Boolean   @default(true)
+  new_follower_notifications         Boolean   @default(true)
+  comment_notifications              Boolean   @default(true)
+  like_notifications                 Boolean   @default(false)
+  weekly_summary                     Boolean   @default(true)
+  @@map("user_settings")
 }

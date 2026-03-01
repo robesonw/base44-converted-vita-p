@@ -1,15 +1,15 @@
 import { Slot } from '@radix-ui/react-slot';
-import { cva, type VariantProps } from 'class-variance-authority';
 import { forwardRef } from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
-export const buttonVariants = cva('inline-flex items-center justify-center rounded-lg border border-transparent font-medium focus:outline-none focus:ring-2 focus:ring-offset-2', {
+export const buttonVariants = cva('inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50', {
   variants: {
     variant: {
-      default: 'bg-primary text-primary-foreground hover:bg-primary/80',
-      destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/80',
-      outline: 'border border-input bg-background text-foreground hover:bg-accent',
-      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+      default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+      destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+      outline: 'border border-input hover:bg-accent',
+      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/90',
       ghost: 'hover:bg-accent',
       link: 'text-primary underline-offset-4 hover:underline',
     },
@@ -26,10 +26,7 @@ export const buttonVariants = cva('inline-flex items-center justify-center round
   },
 });
 
-export const Button = forwardRef<HTMLElement, React.ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof buttonVariants>>((props, ref) => {
-  const { className, variant, size, ...rest } = props;
-  return (
-    <button ref={ref} className={cn(buttonVariants({ variant, size }), className)} {...rest} />
-  );
-});
+export const Button = forwardRef(({ className, variant, size, ...props }, ref) => (
+  <Slot className={cn(buttonVariants({ variant, size }), className)} ref={ref} {...props} />
+));
 Button.displayName = 'Button';

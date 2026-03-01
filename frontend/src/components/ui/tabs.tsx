@@ -1,7 +1,4 @@
-import * as TabsPrimitive from '@radix-ui/react-tabs';
-import { cn } from '@/lib/utils';
+import { Tabs as RadixTabs, TabsList, TabsTrigger, TabsContent } from '@radix-ui/react-tabs';
 
-export const Tabs = TabsPrimitive.Root;
-export const TabsList = TabsPrimitive.List;
-export const TabsTrigger = TabsPrimitive.Trigger;
-export const TabsContent = TabsPrimitive.Content;
+export const Tabs = ({ children }) => <RadixTabs>{children}</RadixTabs>;
+export { TabsList, TabsTrigger, TabsContent };

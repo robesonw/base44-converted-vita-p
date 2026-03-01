@@ -1,6 +1,5 @@
-import * as SwitchPrimitive from '@radix-ui/react-switch';
-import { cn } from '@/lib/utils';
+import { Switch as RadixSwitch } from '@radix-ui/react-switch';
 
-export const Switch = ({ className, ...props }) => {
-  return <SwitchPrimitive.Root className={cn('rounded-full border-2 transition-colors', className)} {...props} />;
-};
+export const Switch = ({ className, ...props }) => (
+  <RadixSwitch className={`rounded-full ${className}`} {...props} />
+);
